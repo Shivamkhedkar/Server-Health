@@ -1,0 +1,164 @@
+# Production stack. Compared to docker-compose.yml (dev):
+#   - only the frontend (Nginx, port 80) is exposed to the host directly.
+#     Postgres, Redis, Prometheus, and AlertManager are reachable only on
+#     the internal `monitor-prod-net` network - nothing outside the Docker
+#     host can hit them. The backend's own port is also not published;
+#     the frontend's Nginx is the sole entry point and proxies /api (and
+#     the /api/metrics/ws websocket) to it internally.
+#   - Grafana is still exposed (3000) since, like the frontend, it's a
+#     human-facing dashboard meant to be reached directly. Put it behind
+#     your own TLS-terminating reverse proxy/VPN for a real deployment;
+#     this compose file intentionally stays infra-agnostic about that.
+#   - every image is pinned to an explicit version (see docker-compose.yml
+#     for version-choice reasoning) and every service has a real
+#     healthcheck, restart policy, and named dependency ordering.
+#   - all previously hard-coded credentials now come from the environment
+#     (see .env.example) and are required (`:?`) rather than silently
+#     defaulting to something like "postgres123" the way the old compose
+#     files did.
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: devops_backend_prod
+    restart: unless-stopped
+    environment:
+      - ENVIRONMENT=production
+      - SECRET_KEY=${SECRET_KEY:?SECRET_KEY must be set in .env for production}
+      - ACCESS_TOKEN_EXPIRE_MINUTES=${ACCESS_TOKEN_EXPIRE_MINUTES:-30}
+      - REFRESH_TOKEN_EXPIRE_DAYS=${REFRESH_TOKEN_EXPIRE_DAYS:-7}
+      - ADMIN_DEFAULT_PASSWORD=${ADMIN_DEFAULT_PASSWORD:?ADMIN_DEFAULT_PASSWORD must be set in .env for production}
+      - POSTGRES_SERVER=postgres
+      - POSTGRES_USER=${POSTGRES_USER:-postgres}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set in .env for production}
+      - POSTGRES_DB=${POSTGRES_DB:-devops_monitor}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - SMTP_HOST=${SMTP_HOST:-smtp.gmail.com}
+      - SMTP_PORT=${SMTP_PORT:-587}
+      - SMTP_USER=${SMTP_USER:-}
+      - SMTP_PASSWORD=${SMTP_PASSWORD:-}
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN:-}
+      - TELEGRAM_CHAT_ID=${TELEGRAM_CHAT_ID:-}
+      - CORS_ALLOWED_ORIGINS=${CORS_ALLOWED_ORIGINS:?CORS_ALLOWED_ORIGINS must list your real production origin(s) in .env}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - monitor-prod-net
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: devops_frontend_prod
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:80/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    networks:
+      - monitor-prod-net
+
+  postgres:
+    image: postgres:15-alpine
+    container_name: devops_postgres_prod
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set in .env for production}
+      POSTGRES_DB: ${POSTGRES_DB:-devops_monitor}
+    volumes:
+      - postgres_prod_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-devops_monitor}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - monitor-prod-net
+
+  redis:
+    image: redis:7-alpine
+    container_name: devops_redis_prod
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - monitor-prod-net
+
+  prometheus:
+    image: prom/prometheus:v2.53.5
+    container_name: devops_prometheus_prod
+    restart: unless-stopped
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./prometheus/alert_rules.yml:/etc/prometheus/alert_rules.yml:ro
+      - prometheus_prod_data:/prometheus
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:9090/-/healthy || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+    networks:
+      - monitor-prod-net
+
+  alertmanager:
+    image: prom/alertmanager:v0.28.1
+    container_name: devops_alertmanager_prod
+    restart: unless-stopped
+    volumes:
+      - ./alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+      - alertmanager_prod_data:/alertmanager
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:9093/-/healthy || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+    networks:
+      - monitor-prod-net
+
+  grafana:
+    image: grafana/grafana:12.4.9
+    container_name: devops_grafana_prod
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=${GRAFANA_ADMIN_USER:-admin}
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:?GRAFANA_ADMIN_PASSWORD must be set in .env for production}
+    volumes:
+      - ./grafana/provisioning/datasources/datasource.yml:/etc/grafana/provisioning/datasources/datasource.yml:ro
+      - ./grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards:ro
+      - grafana_prod_data:/var/lib/grafana
+    depends_on:
+      - prometheus
+    networks:
+      - monitor-prod-net
+
+networks:
+  monitor-prod-net:
+    driver: bridge
+
+volumes:
+  postgres_prod_data:
+  prometheus_prod_data:
+  alertmanager_prod_data:
+  grafana_prod_data:

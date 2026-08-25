@@ -1,0 +1,43 @@
+global:
+  resolve_timeout: 5m
+
+route:
+  group_by: ['alertname']
+  group_wait: 10s
+  group_interval: 10s
+  repeat_interval: 1h
+  receiver: 'null'
+
+receivers:
+  # Deliberately a no-op receiver. Why:
+  #
+  # This alert path (Prometheus rules -> AlertManager) and the application's
+  # own alert path (backend/app/services/metric_service.py ->
+  # notification_service.py) both evaluate the same underlying CPU/RAM/Disk
+  # signal and were BOTH wired to push to Telegram - so every real incident
+  # paged twice, through two different, slightly-out-of-sync threshold
+  # configs (this file's static 80/85/90 vs the app's operator-configurable
+  # Settings-page thresholds, default 85/90/90).
+  #
+  # There used to be a "telegram-bot" service here that received
+  # AlertManager's webhook - but it never actually called the Telegram API
+  # at all, it only printed the payload to its own container log
+  # (see git history / old telegram-bot/app.py). So in practice this path
+  # was a fake integration layered on top of a real duplicate-alerting bug.
+  #
+  # Resolution: the application (Settings > Incident Alert Dispatch
+  # Channels) is the single source of truth for outbound Email/Telegram
+  # paging, because it's the only path with operator-configurable
+  # thresholds, per-alert-type cooldown, acknowledgement, and persisted
+  # history - things Prometheus static rules can't do. Prometheus +
+  # AlertManager + Grafana remain fully wired and useful for their own
+  # actual job: infrastructure-level metric visualization/graphing
+  # (Grafana) and independent threshold evaluation that keeps working even
+  # if the FastAPI app itself is down (AlertManager's own UI at :9093
+  # still shows firing/resolved alerts either way).
+  #
+  # If you want AlertManager to also page a human directly, replace this
+  # with a real receiver (slack_configs / email_configs / a working
+  # webhook) - just don't point it at the same channel the app already
+  # notifies, or you're back to double-paging on every incident.
+  - name: 'null'

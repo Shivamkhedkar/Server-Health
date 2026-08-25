@@ -1,0 +1,15 @@
+apiVersion: 1
+
+# Without this file, the dashboard JSON in this same directory
+# (system-overview.json) is mounted into the container but Grafana never
+# actually imports it - dashboard JSON provisioning requires this
+# "dashboard provider" config to tell Grafana which folder to scan.
+providers:
+  - name: 'DevOps Monitor Pro'
+    orgId: 1
+    folder: ''
+    type: file
+    disableDeletion: false
+    updateIntervalSeconds: 30
+    options:
+      path: /etc/grafana/provisioning/dashboards

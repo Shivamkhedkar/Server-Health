@@ -1,0 +1,39 @@
+groups:
+  - name: server_health_alerts
+    # Thresholds intentionally match the application's default
+    # cpu_threshold/ram_threshold/disk_threshold (see
+    # backend/app/services/settings_service.py DEFAULTS) so the two
+    # independent alerting paths agree on what "high" means out of the
+    # box. Note these are static: if an operator changes the live
+    # thresholds from the Settings page, only the application's own alerts
+    # follow that change - these rules require editing this file and
+    # reloading Prometheus. That's an inherent trade-off of a config-file
+    # based rule engine vs. the app's DB-backed runtime settings, not a
+    # bug to fix.
+    rules:
+      - alert: HighCPUUsage
+        expr: system_cpu_percent > 85
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "High CPU usage detected on server"
+          description: "CPU usage is above 85% for 1 minute."
+
+      - alert: HighMemoryUsage
+        expr: system_ram_percent > 90
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "High Memory usage detected"
+          description: "RAM usage is above 90% for 1 minute."
+
+      - alert: HighDiskUsage
+        expr: system_disk_percent > 90
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Storage partition filling up"
+          description: "Disk partition capacity exceeds 90%."

@@ -1,0 +1,96 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100 transition-colors duration-300;
+  }
+}
+
+@layer utilities {
+  /* Light Mode Glass Panel */
+  .glass-panel {
+    background: rgba(255, 255, 255, 0.9);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(203, 213, 225, 0.8);
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.01);
+    color: #0f172a;
+  }
+
+  /* Dark Mode Glass Panel */
+  .dark .glass-panel {
+    background: rgba(15, 23, 42, 0.75);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: 0 12px 40px 0 rgba(0, 0, 0, 0.4);
+    color: #f8fafc;
+  }
+
+  .glass-card-hover {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .glass-card-hover:hover {
+    transform: translateY(-4px);
+    border-color: rgba(99, 102, 241, 0.5);
+    box-shadow: 0 16px 35px -5px rgba(99, 102, 241, 0.18);
+  }
+}
+
+@layer utilities {
+  /* Telemetry panel - the signature surface for the redesigned dashboard.
+     A darker, more technical surface than the generic glass-panel, with a
+     hairline top edge like a physical instrument bezel. */
+  .telemetry-panel {
+    background: linear-gradient(180deg, rgba(19, 26, 36, 0.9) 0%, rgba(13, 18, 25, 0.92) 100%);
+    border: 1px solid rgba(56, 208, 224, 0.12);
+    border-top: 1px solid rgba(56, 208, 224, 0.28);
+    box-shadow: 0 20px 50px -20px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.02);
+  }
+  .light .telemetry-panel {
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.96) 0%, rgba(245, 248, 250, 0.98) 100%);
+    border: 1px solid rgba(15, 23, 42, 0.08);
+    border-top: 1px solid rgba(43, 217, 124, 0.4);
+    box-shadow: 0 20px 40px -20px rgba(15, 23, 42, 0.12);
+  }
+
+  .data-num {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.02em;
+  }
+
+  .live-dot {
+    position: relative;
+  }
+  .live-dot::before {
+    content: '';
+    position: absolute;
+    inset: -4px;
+    border-radius: 9999px;
+    background: currentColor;
+    opacity: 0.35;
+    animation: blip 1.6s ease-in-out infinite;
+  }
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: rgba(226, 232, 240, 0.8);
+}
+.dark ::-webkit-scrollbar-track {
+  background: rgba(15, 23, 42, 0.5);
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(99, 102, 241, 0.5);
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(99, 102, 241, 0.9);
+}
