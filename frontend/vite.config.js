@@ -15,6 +15,14 @@ export default defineConfig({
     }
   },
   build: {
-    chunkSizeWarningLimit: 1000
+    chunkSizeWarningLimit: 600,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          three: ['three'],
+          vendor: ['react', 'react-dom', 'react-router-dom', 'axios', 'lucide-react']
+        }
+      }
+    }
   }
 });

@@ -85,8 +85,10 @@ export default function Server3DCube({ status = 'HEALTHY', healthScore = 98 }) {
     // Animation Loop
     let animationFrameId;
     let clock = new THREE.Clock();
+    let isPaused = false;
 
     const animate = () => {
+      if (isPaused || document.hidden) return;
       animationFrameId = requestAnimationFrame(animate);
       const elapsedTime = clock.getElapsedTime();
 
@@ -109,6 +111,19 @@ export default function Server3DCube({ status = 'HEALTHY', healthScore = 98 }) {
       renderer.render(scene, camera);
     };
 
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        isPaused = true;
+        if (animationFrameId) cancelAnimationFrame(animationFrameId);
+      } else {
+        if (isPaused) {
+          isPaused = false;
+          animate();
+        }
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
     animate();
 
     const handleResize = () => {
@@ -125,6 +140,7 @@ export default function Server3DCube({ status = 'HEALTHY', healthScore = 98 }) {
     return () => {
       cancelAnimationFrame(animationFrameId);
       window.removeEventListener('resize', handleResize);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
       container.removeEventListener('mousemove', handleMouseMove);
       if (container.contains(renderer.domElement)) {
         container.removeChild(renderer.domElement);

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, Suspense, lazy } from 'react';
 import api, { handleAuthFailure } from '../api/api';
 import { fetchMockOverview } from '../api/mockData';
 import StatReadout from '../components/StatReadout';
@@ -8,9 +8,10 @@ import PulseStrip from '../components/PulseStrip';
 import CoreGrid from '../components/CoreGrid';
 import ProcessTable from '../components/ProcessTable';
 import IOPanel from '../components/IOPanel';
-import Server3DCube from '../components/Server3DCube';
 import Tilt3DCard from '../components/Tilt3DCard';
 import { Cpu, HardDrive, MemoryStick, Wifi, WifiOff, Radio, Gauge } from 'lucide-react';
+
+const Server3DCube = lazy(() => import('../components/Server3DCube'));
 
 const STATUS_COLOR = {
   HEALTHY: '#2bd97c',
@@ -256,7 +257,9 @@ export default function Dashboard() {
                 </span>
                 <span className="h-2 w-2 rounded-full bg-cyan-400 animate-ping" />
               </div>
-              <Server3DCube status={overview.status} healthScore={health_score} />
+              <Suspense fallback={<div className="h-48 flex items-center justify-center text-xs text-slate-500 font-mono">Initializing 3D Core...</div>}>
+                <Server3DCube status={overview.status} healthScore={health_score} />
+              </Suspense>
             </div>
           </Tilt3DCard>
         </div>

@@ -10,6 +10,7 @@ export default function LiveTelemetryBackground() {
     if (!ctx) return;
 
     let animationFrameId;
+    let isPaused = false;
     let width = (canvas.width = canvas.parentElement?.clientWidth || window.innerWidth);
     let height = (canvas.height = canvas.parentElement?.clientHeight || window.innerHeight);
 
@@ -19,7 +20,20 @@ export default function LiveTelemetryBackground() {
       height = canvas.height = canvas.parentElement?.clientHeight || window.innerHeight;
     };
 
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        isPaused = true;
+        if (animationFrameId) cancelAnimationFrame(animationFrameId);
+      } else {
+        if (isPaused) {
+          isPaused = false;
+          render();
+        }
+      }
+    };
+
     window.addEventListener('resize', handleResize);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
 
     // Create network telemetry nodes
     const nodeCount = Math.min(Math.floor((width * height) / 25000), 35);
@@ -41,6 +55,7 @@ export default function LiveTelemetryBackground() {
     }));
 
     const render = () => {
+      if (isPaused || document.hidden) return;
       ctx.clearRect(0, 0, width, height);
 
       const isDark = document.documentElement.classList.contains('dark');
@@ -129,6 +144,7 @@ export default function LiveTelemetryBackground() {
 
     return () => {
       window.removeEventListener('resize', handleResize);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
       cancelAnimationFrame(animationFrameId);
     };
   }, []);
