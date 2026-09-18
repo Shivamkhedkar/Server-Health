@@ -1,0 +1,36 @@
+{
+  "annotations": { "list": [] },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "id": 1,
+  "links": [],
+  "liveNow": false,
+  "panels": [
+    {
+      "title": "CPU Usage Gauge",
+      "type": "gauge",
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 0 },
+      "targets": [{ "expr": "system_cpu_percent", "legendFormat": "CPU %" }]
+    },
+    {
+      "title": "RAM Usage Gauge",
+      "type": "gauge",
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 0 },
+      "targets": [{ "expr": "system_ram_percent", "legendFormat": "RAM %" }]
+    },
+    {
+      "title": "Disk Usage Gauge",
+      "type": "gauge",
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 0 },
+      "targets": [{ "expr": "system_disk_percent", "legendFormat": "Disk %" }]
+    }
+  ],
+  "refresh": "5s",
+  "schemaVersion": 38,
+  "style": "dark",
+  "tags": ["devops", "monitoring"],
+  "time": { "from": "now-1h", "to": "now" },
+  "title": "DevOps Monitor System Overview",
+  "version": 1
+}
