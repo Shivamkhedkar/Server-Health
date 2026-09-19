@@ -1,6 +1,13 @@
 import os
 import warnings
+from dotenv import load_dotenv
 from pydantic_settings import BaseSettings
+
+# Auto-load environment variables from root .env or local .env
+_root_env = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../.env"))
+if os.path.exists(_root_env):
+    load_dotenv(_root_env)
+load_dotenv()
 
 
 class Settings(BaseSettings):
