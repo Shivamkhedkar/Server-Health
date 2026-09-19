@@ -73,3 +73,25 @@ def prune_database(db: Session = Depends(get_db)):
         "total_remaining": total_remaining,
         "message": msg,
     }
+
+
+@router.get("/db-stats")
+def get_db_stats(db: Session = Depends(get_db)):
+    from app.core.database import engine
+    from app.models.metric import Metric
+    from app.models.alert import Alert
+    from app.models.user import User
+
+    dialect_name = engine.dialect.name
+    engine_label = "PostgreSQL 15 (Docker Production)" if dialect_name == "postgresql" else "SQLite 3 (Standalone Local Dev)"
+
+    return {
+        "engine_name": dialect_name,
+        "engine_label": engine_label,
+        "connected": True,
+        "total_metrics": db.query(Metric).count(),
+        "total_alerts": db.query(Alert).count(),
+        "total_users": db.query(User).count(),
+        "tables": ["users", "metrics", "alerts", "app_settings"],
+    }
+
