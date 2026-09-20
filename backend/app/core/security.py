@@ -3,6 +3,7 @@ from typing import Optional, Any, Union
 import hashlib
 import hmac
 import os
+import secrets
 from jose import jwt, JWTError
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
@@ -62,6 +63,16 @@ def is_token_revoked(token: str) -> bool:
         except Exception:
             pass
     return False
+
+
+def generate_api_key() -> tuple[str, str]:
+    raw_key = "shp_" + secrets.token_hex(16)
+    key_hash = hash_api_key(raw_key)
+    return raw_key, key_hash
+
+
+def hash_api_key(raw_key: str) -> str:
+    return hashlib.sha256(raw_key.encode("utf-8")).hexdigest()
 
 
 PBKDF2_ITERATIONS = 600000

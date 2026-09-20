@@ -1,4 +1,5 @@
-from sqlalchemy import Column, Integer, Float, DateTime, String
+from sqlalchemy import Column, Integer, Float, DateTime, String, ForeignKey
+from sqlalchemy.orm import relationship
 from datetime import datetime, timezone
 from app.core.database import Base
 
@@ -7,6 +8,7 @@ class Metric(Base):
     __tablename__ = "metrics"
 
     id = Column(Integer, primary_key=True, index=True)
+    server_id = Column(Integer, ForeignKey("servers.id", ondelete="CASCADE"), nullable=True, index=True)
     timestamp = Column(DateTime, default=lambda: datetime.now(timezone.utc), index=True)
     cpu_usage = Column(Float, nullable=False)
     ram_usage = Column(Float, nullable=False)
@@ -15,3 +17,5 @@ class Metric(Base):
     network_recv_mb = Column(Float, default=0.0)
     process_count = Column(Integer, default=0)
     status = Column(String(20), default="HEALTHY")
+
+    server = relationship("Server", back_populates="metrics")
