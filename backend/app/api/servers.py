@@ -95,3 +95,14 @@ def update_server_settings(
     current_user: User = Depends(get_current_user),
 ):
     return server_service.update_server_settings(db, server_id, current_user, payload)
+
+
+@router.get("/{server_id}/alerts")
+def get_server_alerts(
+    server_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    server = server_service.get_server_by_id(db, server_id, current_user)
+    from app.services.alert_service import get_all_alerts
+    return get_all_alerts(db, user=current_user, server_id=server.id)

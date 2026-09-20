@@ -70,6 +70,8 @@ def ingest_agent_metrics(
     db.add(metric)
     db.commit()
     db.refresh(server)
+    from app.services.alert_service import check_and_raise_server_alerts
+    check_and_raise_server_alerts(db, server, payload.model_dump())
 
     return {
         "status": "accepted",

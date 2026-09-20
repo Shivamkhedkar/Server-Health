@@ -18,6 +18,7 @@ from app.models.alert import Alert
 from app.services.metrics_collector import collector
 from app.services.metric_service import persist_snapshot
 from app.services.retention_service import retention_task
+from app.services.offline_service import offline_detector
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("devops_monitor")
@@ -39,6 +40,7 @@ async def lifespan(app: FastAPI):
         collector.set_persist_callback(_persist)
         await collector.start()
         await retention_task.start()
+        await offline_detector.start()
 
         db = SessionLocal()
         try:
@@ -81,6 +83,7 @@ async def lifespan(app: FastAPI):
     if settings.ENVIRONMENT.lower() not in ("test", "testing"):
         await collector.stop()
         await retention_task.stop()
+        await offline_detector.stop()
 
 
 app = FastAPI(
