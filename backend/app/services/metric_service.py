@@ -1,6 +1,7 @@
 import psutil
 import time
 from sqlalchemy.orm import Session
+from typing import Optional
 from datetime import datetime, timedelta, timezone
 from app.models.metric import Metric
 from app.models.alert import Alert
@@ -173,10 +174,13 @@ def delete_old_metrics(db: Session, retention_days: int) -> int:
     return deleted
 
 
-def get_metrics_history(db: Session, hours: int = 24, limit: int = 2000):
+def get_metrics_history(db: Session, server_id: Optional[int] = None, hours: int = 24, limit: int = 2000):
     """Returns real persisted metric samples."""
     since = datetime.now(timezone.utc) - timedelta(hours=hours)
-    query = db.query(Metric).filter(Metric.timestamp >= since).order_by(Metric.timestamp.asc())
+    query = db.query(Metric).filter(Metric.timestamp >= since)
+    if server_id is not None:
+        query = query.filter(Metric.server_id == server_id)
+    query = query.order_by(Metric.timestamp.asc())
     total = query.count()
     if total > limit:
         stride = max(1, total // limit)

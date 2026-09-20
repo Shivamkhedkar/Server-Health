@@ -106,3 +106,45 @@ def get_server_alerts(
     server = server_service.get_server_by_id(db, server_id, current_user)
     from app.services.alert_service import get_all_alerts
     return get_all_alerts(db, user=current_user, server_id=server.id)
+
+
+@router.get("/{server_id}/metrics/current")
+def get_server_current_metrics(
+    server_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    server = server_service.get_server_by_id(db, server_id, current_user)
+    from app.models.metric import Metric
+    latest = (
+        db.query(Metric)
+        .filter(Metric.server_id == server.id)
+        .order_by(Metric.timestamp.desc())
+        .first()
+    )
+    if not latest:
+        return {
+            "id": 0,
+            "server_id": server.id,
+            "timestamp": server.last_seen or server.created_at,
+            "cpu_usage": 0.0,
+            "ram_usage": 0.0,
+            "disk_usage": 0.0,
+            "network_sent_mb": 0.0,
+            "network_recv_mb": 0.0,
+            "process_count": 0,
+            "status": server.status.upper(),
+        }
+    return latest
+
+
+@router.get("/{server_id}/metrics/history")
+def get_server_metrics_history(
+    server_id: int,
+    hours: int = 24,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    server = server_service.get_server_by_id(db, server_id, current_user)
+    from app.services.metric_service import get_metrics_history
+    return get_metrics_history(db, server_id=server.id, hours=hours)

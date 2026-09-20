@@ -16,3 +16,6 @@ class User(Base):
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
     servers = relationship("Server", back_populates="user", cascade="all, delete-orphan")
+    notification_pref = relationship(
+        "NotificationPref", back_populates="user", uselist=False, cascade="all, delete-orphan"
+    )
