@@ -1,14 +1,15 @@
 import logging
 from contextlib import asynccontextmanager
-from fastapi import FastAPI
+from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy.orm import Session
 from prometheus_client import generate_latest, CONTENT_TYPE_LATEST, Counter, Gauge
 from fastapi.responses import Response
 from slowapi.errors import RateLimitExceeded
 from slowapi import _rate_limit_exceeded_handler
 
 from app.core.config import settings
-from app.core.database import Base, engine, SessionLocal
+from app.core.database import Base, engine, SessionLocal, get_db
 from app.core.limiter import limiter
 from app.core.security import verify_password, get_password_hash
 from app.api import auth, metrics, alerts, users, system, settings as settings_api
@@ -130,8 +131,19 @@ def health_check():
 
 
 @app.get("/health/database", tags=["Health Check"])
-def health_db():
-    return {"database": "CONNECTED", "engine": "PostgreSQL/SQLAlchemy"}
+def health_db(db: Session = Depends(get_db)):
+    """Pings the active database engine to verify real connectivity."""
+    try:
+        from sqlalchemy import text
+        db.execute(text("SELECT 1"))
+        driver = "PostgreSQL" if "postgresql" in str(engine.url) else "SQLite"
+        return {"database": "CONNECTED", "engine": driver, "status": "READY"}
+    except Exception as exc:
+        return Response(
+            content=f'{{"database": "OFFLINE", "status": "UNREACHABLE", "detail": "{exc}"}}',
+            media_type="application/json",
+            status_code=503,
+        )
 
 
 @app.get("/health/redis", tags=["Health Check"])

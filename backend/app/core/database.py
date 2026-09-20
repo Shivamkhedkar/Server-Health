@@ -13,6 +13,9 @@ try:
     engine = _tmp_engine
     logger.info("Successfully connected to PostgreSQL database.")
 except Exception as exc:
+    if settings.ENVIRONMENT.lower() in ("production", "prod"):
+        logger.critical("CRITICAL: Failed to connect to PostgreSQL in PRODUCTION mode (%s). Halting application.", exc)
+        raise RuntimeError(f"CRITICAL: Failed to connect to PostgreSQL in production mode: {exc}")
     logger.warning("PostgreSQL connection unavailable (%s). Falling back to SQLite (devops_monitor.db).", exc)
     engine = create_engine("sqlite:///./devops_monitor.db", connect_args={"check_same_thread": False})
 

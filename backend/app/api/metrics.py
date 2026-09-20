@@ -25,7 +25,7 @@ router = APIRouter(prefix="/metrics", tags=["Metrics"])
 
 @router.get("/current", response_model=MetricResponse)
 def get_current(db: Session = Depends(get_db), current_user=Depends(get_current_user)):
-    return collect_current_metrics(db)
+    return collect_current_metrics(db, persist=False)
 
 
 @router.get("/overview", response_model=SystemOverview)

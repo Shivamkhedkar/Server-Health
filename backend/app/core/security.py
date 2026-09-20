@@ -131,6 +131,8 @@ def get_current_user(db: Session = Depends(get_db), token: Optional[str] = Depen
         raise credentials_exception
     try:
         payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+        if payload.get("type") != "access":
+            raise credentials_exception
         username: str = payload.get("sub")
         if username is None:
             raise credentials_exception
@@ -138,7 +140,7 @@ def get_current_user(db: Session = Depends(get_db), token: Optional[str] = Depen
         raise credentials_exception
 
     user = db.query(User).filter(User.username == username).first()
-    if user is None:
+    if user is None or not user.is_active:
         raise credentials_exception
     return user
 
@@ -166,9 +168,14 @@ def get_user_from_token(db: Session, token: Optional[str]) -> Optional[User]:
         return None
     try:
         payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+        if payload.get("type") != "access":
+            return None
         username: str = payload.get("sub")
         if username is None:
             return None
     except JWTError:
         return None
-    return db.query(User).filter(User.username == username).first()
+    user = db.query(User).filter(User.username == username).first()
+    if user is None or not user.is_active:
+        return None
+    return user

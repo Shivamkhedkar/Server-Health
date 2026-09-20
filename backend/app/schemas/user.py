@@ -16,7 +16,7 @@ class UserCreate(UserBase):
 
 
 class UserRegister(UserBase):
-    password: str = Field(min_length=6)
+    password: str = Field(min_length=8)
 
 
 class UserResponse(UserBase):

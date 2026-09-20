@@ -104,3 +104,21 @@ def test_settings_threshold_validation(client):
 
     ok = client.put("/api/settings", json={"cpu_threshold": 80.0}, headers=headers)
     assert ok.status_code == 200
+
+
+def test_refresh_token_rejected_on_protected_routes(client):
+    login = client.post("/api/auth/login", json={"username": "admin", "password": "admin123"})
+    refresh_token = login.json()["refresh_token"]
+
+    # Passing a refresh token as a Bearer authorization token must be rejected with 401
+    me = client.get("/api/metrics/current", headers={"Authorization": f"Bearer {refresh_token}"})
+    assert me.status_code == 401
+
+
+def test_health_database_endpoint(client):
+    response = client.get("/health/database")
+    assert response.status_code == 200
+    data = response.json()
+    assert data["database"] == "CONNECTED"
+    assert "engine" in data
+

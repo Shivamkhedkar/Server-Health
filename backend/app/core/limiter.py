@@ -26,6 +26,16 @@ logger = logging.getLogger("devops_monitor.limiter")
 # the whole app over a rate-limiter storage choice.
 
 
+def get_client_ip(request):
+    """Parses X-Forwarded-For header when behind a reverse proxy (e.g. Nginx, Cloudflare),
+    ensuring each real client IP is rate-limited individually instead of grouping all
+    proxy traffic under a single local IP."""
+    forwarded = request.headers.get("X-Forwarded-For")
+    if forwarded:
+        return forwarded.split(",")[0].strip()
+    return get_remote_address(request)
+
+
 def _build_limiter() -> Limiter:
     redis_url = f"redis://{settings.REDIS_HOST}:{settings.REDIS_PORT}/0"
     try:
@@ -34,7 +44,7 @@ def _build_limiter() -> Limiter:
         client = redis_lib.from_url(redis_url, socket_connect_timeout=1, socket_timeout=1)
         client.ping()
         logger.info("Rate limiter using shared Redis storage at %s", redis_url)
-        return Limiter(key_func=get_remote_address, storage_uri=redis_url)
+        return Limiter(key_func=get_client_ip, storage_uri=redis_url)
     except Exception as exc:
         logger.warning(
             "Redis unavailable (%s) - rate limiter falling back to in-memory "
@@ -43,7 +53,7 @@ def _build_limiter() -> Limiter:
             "tracked per-replica instead of globally.",
             exc,
         )
-        return Limiter(key_func=get_remote_address)
+        return Limiter(key_func=get_client_ip)
 
 
 limiter = _build_limiter()

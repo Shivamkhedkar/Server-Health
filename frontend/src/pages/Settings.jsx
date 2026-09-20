@@ -47,17 +47,11 @@ export default function Settings() {
   const [toast, setToast] = useState(null);
   const [testing, setTesting] = useState(null);
 
-  const [dbStats, setDbStats] = useState(null);
+  const isAdmin = localStorage.getItem('role') === 'admin';
 
   const loadSettings = async () => {
     try {
-      const [res, statsRes] = await Promise.all([
-        api.get('/settings'),
-        api.get('/settings/db-stats').catch(() => null)
-      ]);
-      if (statsRes?.data) {
-        setDbStats(statsRes.data);
-      }
+      const res = await api.get('/settings');
       setForm({
         cpu_threshold: Number(res.data.cpu_threshold),
         ram_threshold: Number(res.data.ram_threshold),
@@ -446,50 +440,6 @@ export default function Settings() {
                     <p className="text-[10px] text-slate-500 mt-1">{rate.desc}</p>
                   </button>
                 ))}
-              </div>
-            </div>
-
-            {/* Live Database Storage & Engine Inspector Card */}
-            <div className="glass-panel p-6 rounded-3xl border border-slate-200 dark:border-slate-800 space-y-6">
-              <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-4">
-                <div>
-                  <h2 className="text-sm font-extrabold text-slate-900 dark:text-white flex items-center space-x-2">
-                    <Database className="w-4 h-4 text-emerald-500" />
-                    <span>Live Database Engine & Storage Inspection</span>
-                  </h2>
-                  <p className="text-xs text-slate-600 dark:text-slate-400 mt-0.5">Real-time status, record counts, and database driver statistics</p>
-                </div>
-                <span className="px-3 py-1 rounded-full text-[10px] font-mono font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 flex items-center space-x-1.5">
-                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
-                  <span>HEALTHY & ACTIVE</span>
-                </span>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                <div className="p-4 rounded-2xl bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 shadow-sm">
-                  <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Database Driver</p>
-                  <p className="text-xs font-black text-slate-900 dark:text-white mt-1 font-mono">
-                    {dbStats?.engine_label || 'SQLite 3 (Standalone Local Dev)'}
-                  </p>
-                </div>
-                <div className="p-4 rounded-2xl bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 shadow-sm">
-                  <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Telemetry Samples</p>
-                  <p className="text-base font-black text-emerald-500 mt-1 font-mono">
-                    {dbStats?.total_metrics ?? '800+'} <span className="text-xs font-normal text-slate-400">rows</span>
-                  </p>
-                </div>
-                <div className="p-4 rounded-2xl bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 shadow-sm">
-                  <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Logged Incidents</p>
-                  <p className="text-base font-black text-amber-500 mt-1 font-mono">
-                    {dbStats?.total_alerts ?? '9'} <span className="text-xs font-normal text-slate-400">alerts</span>
-                  </p>
-                </div>
-                <div className="p-4 rounded-2xl bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 shadow-sm">
-                  <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Active Database Tables</p>
-                  <p className="text-xs font-bold text-indigo-400 mt-1 font-mono">
-                    users, metrics, alerts, app_settings
-                  </p>
-                </div>
               </div>
             </div>
 
