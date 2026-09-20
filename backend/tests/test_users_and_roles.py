@@ -26,9 +26,8 @@ def viewer_headers(test_db):
     return {"Authorization": f"Bearer {create_access_token(subject='viewer1')}"}
 
 
-def test_public_self_registration_forces_viewer_role(client):
-    # The /auth/register endpoint allows public account creation, but forces
-    # the viewer role regardless of what role was sent in the request body.
+def test_public_registration_disabled_without_admin(client):
+    # Public self-registration is disabled; unauthenticated requests return 401
     response = client.post(
         "/api/auth/register",
         json={
@@ -38,8 +37,21 @@ def test_public_self_registration_forces_viewer_role(client):
             "role": "admin",
         },
     )
-    assert response.status_code == 200
-    assert response.json()["user"]["role"] == "viewer"
+    assert response.status_code == 401
+
+    # When called with Admin headers, registration succeeds and forces viewer role
+    admin_res = client.post(
+        "/api/auth/register",
+        json={
+            "username": "adminreg_test_user",
+            "email": "adminreg_test_user@example.com",
+            "password": "password123",
+            "role": "admin",
+        },
+        headers=admin_headers(),
+    )
+    assert admin_res.status_code == 200
+    assert admin_res.json()["user"]["role"] == "viewer"
 
 
 def test_admin_can_create_and_list_and_delete_team_members(client, test_db):

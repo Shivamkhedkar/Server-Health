@@ -23,7 +23,6 @@ class Settings(BaseSettings):
     # actually keeps the user signed in. See app/api/auth.py.
     ACCESS_TOKEN_EXPIRE_MINUTES: int = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "30"))
     REFRESH_TOKEN_EXPIRE_DAYS: int = int(os.getenv("REFRESH_TOKEN_EXPIRE_DAYS", "7"))
-    ALLOW_SELF_REGISTRATION: bool = os.getenv("ALLOW_SELF_REGISTRATION", "true").lower() in ("true", "1", "yes")
 
     # Seed password for the auto-created default "admin" account on first
     # boot. Previously hard-coded to "admin123" directly in main.py; that's

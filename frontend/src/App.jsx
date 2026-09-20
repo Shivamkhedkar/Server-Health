@@ -11,7 +11,6 @@ const Alerts = lazy(() => import('./pages/Alerts'));
 const History = lazy(() => import('./pages/History'));
 const Settings = lazy(() => import('./pages/Settings'));
 const Team = lazy(() => import('./pages/Team'));
-const Servers = lazy(() => import('./pages/Servers'));
 
 const PageLoader = () => (
   <div className="flex items-center justify-center h-64 text-slate-500">
@@ -36,14 +35,12 @@ const ProtectedLayout = () => {
           <div className="relative z-10">
             <Suspense fallback={<PageLoader />}>
               <Routes>
-                <Route path="/servers" element={<Servers />} />
-                <Route path="/servers/:id/dashboard" element={<Dashboard />} />
                 <Route path="/dashboard" element={<Dashboard />} />
                 <Route path="/alerts" element={<Alerts />} />
                 <Route path="/history" element={<History />} />
                 <Route path="/settings" element={<Settings />} />
-                <Route path="/team" element={isAdmin ? <Team /> : <Navigate to="/servers" replace />} />
-                <Route path="*" element={<Navigate to="/servers" replace />} />
+                <Route path="/team" element={isAdmin ? <Team /> : <Navigate to="/dashboard" replace />} />
+                <Route path="*" element={<Navigate to="/dashboard" replace />} />
               </Routes>
             </Suspense>
           </div>

@@ -1,102 +1,19 @@
 import csv
 import io
-from datetime import datetime, timedelta, timezone
-from typing import Optional
 from sqlalchemy.orm import Session
 from fastapi import HTTPException
 from app.models.alert import Alert
-from app.models.server import Server
-from app.models.user import User
 from app.core.config import settings
-from app.services.notification_service import dispatch_alert_notifications
 
 
-def get_all_alerts(
-    db: Session,
-    user: Optional[User] = None,
-    severity: Optional[str] = None,
-    query_str: Optional[str] = None,
-    server_id: Optional[int] = None,
-):
+def get_all_alerts(db: Session, severity: str = None, query_str: str = None):
     query = db.query(Alert)
-
-    if user and user.role != "admin":
-        user_server_ids = [s.id for s in user.servers]
-        query = query.filter((Alert.server_id.in_(user_server_ids)) | (Alert.server_id.is_(None)))
-
-    if server_id is not None:
-        query = query.filter(Alert.server_id == server_id)
-
     if severity and severity.upper() != "ALL":
         query = query.filter(Alert.severity == severity.upper())
     if query_str:
         pattern = f"%{query_str}%"
         query = query.filter((Alert.message.like(pattern)) | (Alert.alert_type.like(pattern)))
     return query.order_by(Alert.timestamp.desc()).all()
-
-
-def check_and_raise_server_alerts(db: Session, server: Server, snap: dict) -> None:
-    cpu_t = float(server.settings.cpu_threshold) if server.settings else 80.0
-    ram_t = float(server.settings.ram_threshold) if server.settings else 85.0
-    disk_t = float(server.settings.disk_threshold) if server.settings else 90.0
-
-    cooldown_cutoff = datetime.now(timezone.utc) - timedelta(minutes=15)
-
-    checks = [
-        ("CPU Usage Spiked", "CRITICAL", snap.get("cpu_usage", 0.0), cpu_t, "CPU"),
-        ("RAM Memory High", "CRITICAL", snap.get("ram_usage", 0.0), ram_t, "RAM"),
-        ("Disk Space Low", "WARNING", snap.get("disk_usage", 0.0), disk_t, "Disk"),
-    ]
-
-    for alert_type, severity, value, threshold, label in checks:
-        if value <= threshold:
-            open_alerts = (
-                db.query(Alert)
-                .filter(
-                    Alert.server_id == server.id,
-                    Alert.alert_type == alert_type,
-                    Alert.acknowledged.is_(False),
-                )
-                .all()
-            )
-            if open_alerts:
-                for alert in open_alerts:
-                    alert.acknowledged = True
-                db.commit()
-            continue
-
-        recent = (
-            db.query(Alert)
-            .filter(
-                Alert.server_id == server.id,
-                Alert.alert_type == alert_type,
-                Alert.timestamp >= cooldown_cutoff,
-            )
-            .first()
-        )
-        if recent:
-            continue
-
-        message = f"Server '{server.name}': {label} usage reached {value}%, exceeding threshold {threshold}%."
-        alert = Alert(server_id=server.id, alert_type=alert_type, severity=severity, message=message)
-        db.add(alert)
-        db.commit()
-        dispatch_alert_notifications(db, alert_type, severity, message)
-
-    # Auto-resolve "Server Offline" alert if present
-    offline_alerts = (
-        db.query(Alert)
-        .filter(
-            Alert.server_id == server.id,
-            Alert.alert_type == "Server Offline",
-            Alert.acknowledged.is_(False),
-        )
-        .all()
-    )
-    if offline_alerts:
-        for alert in offline_alerts:
-            alert.acknowledged = True
-        db.commit()
 
 
 def acknowledge_alert(db: Session, alert_id: int):

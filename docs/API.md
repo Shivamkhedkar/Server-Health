@@ -51,36 +51,6 @@ The WebSocket takes its token as a query parameter (not a header) because browse
 | PUT | `/api/settings` | admin | Update thresholds, cooldown, enable/disable email or Telegram alerts |
 | POST | `/api/settings/test-notification` | admin | Send a real test email/Telegram message using the current config |
 
-## Servers & Fleet Management
-
-| Method | Path | Auth | Description |
-|---|---|---|---|
-| POST | `/api/servers` | any signed-in user | Register a new server. Returns metadata + raw `api_key` (`shp_...`) ONCE |
-| GET | `/api/servers` | any signed-in user | List servers owned by current user (or all servers for admin) |
-| GET | `/api/servers/{id}` | any signed-in user | Get details for specific server (404 if unowned) |
-| PATCH | `/api/servers/{id}` | any signed-in user | Update server name/metadata |
-| DELETE | `/api/servers/{id}` | any signed-in user | Delete server and cascade metrics/alerts |
-| POST | `/api/servers/{id}/regenerate-key` | any signed-in user | Regenerate server API key |
-| GET | `/api/servers/{id}/settings` | any signed-in user | Get custom alert thresholds for server |
-| PUT | `/api/servers/{id}/settings` | any signed-in user | Update alert thresholds for server |
-| GET | `/api/servers/{id}/metrics/current` | any signed-in user | Latest metrics for specific server |
-| GET | `/api/servers/{id}/metrics/history` | any signed-in user | Metric history for specific server |
-| GET | `/api/servers/{id}/alerts` | any signed-in user | Alerts for specific server |
-
-## Agent Metric Ingestion
-
-| Method | Path | Auth | Description |
-|---|---|---|---|
-| POST | `/api/agent/metrics` | `X-API-Key` header | Host metrics ingest from `shp_agent.py` daemon |
-
-## Notifications & Telegram
-
-| Method | Path | Auth | Description |
-|---|---|---|---|
-| GET | `/api/notifications/prefs` | any signed-in user | Get notification preferences |
-| PUT | `/api/notifications/prefs` | any signed-in user | Update email/Telegram preferences |
-| POST | `/api/notifications/telegram/link-code` | any signed-in user | Generate 6-digit link code for Telegram bot binding |
-
 ## System
 
 | Method | Path | Auth | Description |

@@ -17,14 +17,8 @@ router = APIRouter(prefix="/alerts", tags=["Alerts"], dependencies=[Depends(get_
 
 
 @router.get("", response_model=List[AlertResponse])
-def list_alerts(
-    severity: Optional[str] = Query(None),
-    q: Optional[str] = Query(None),
-    server_id: Optional[int] = Query(None),
-    db: Session = Depends(get_db),
-    current_user=Depends(get_current_user),
-):
-    return get_all_alerts(db, user=current_user, severity=severity, query_str=q, server_id=server_id)
+def list_alerts(severity: Optional[str] = Query(None), q: Optional[str] = Query(None), db: Session = Depends(get_db)):
+    return get_all_alerts(db, severity, q)
 
 
 @router.get("/channels")

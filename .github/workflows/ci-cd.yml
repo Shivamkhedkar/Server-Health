@@ -26,11 +26,12 @@ jobs:
 
       - name: Code Formatting Check (Black & Flake8)
         run: |
-          flake8 backend/app agent --max-line-length=120
+          flake8 backend/app --max-line-length=120
 
       - name: Run Backend Pytest Suite
         run: |
-          python -m pytest backend/tests agent/tests --cov=app -v
+          cd backend
+          pytest tests/ --cov=app -v
 
   frontend-build-and-test:
     name: ⚛️ Frontend Build & Tests

@@ -12,13 +12,12 @@ from app.core.config import settings
 from app.core.database import Base, engine, SessionLocal, get_db
 from app.core.limiter import limiter
 from app.core.security import verify_password, get_password_hash
-from app.api import auth, metrics, alerts, users, system, settings as settings_api, servers, agent, notifications
+from app.api import auth, metrics, alerts, users, system, settings as settings_api
 from app.models.user import User
 from app.models.alert import Alert
 from app.services.metrics_collector import collector
 from app.services.metric_service import persist_snapshot
 from app.services.retention_service import retention_task
-from app.services.offline_service import offline_detector
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("devops_monitor")
@@ -40,7 +39,6 @@ async def lifespan(app: FastAPI):
         collector.set_persist_callback(_persist)
         await collector.start()
         await retention_task.start()
-        await offline_detector.start()
 
         db = SessionLocal()
         try:
@@ -83,7 +81,6 @@ async def lifespan(app: FastAPI):
     if settings.ENVIRONMENT.lower() not in ("test", "testing"):
         await collector.stop()
         await retention_task.stop()
-        await offline_detector.stop()
 
 
 app = FastAPI(
@@ -126,9 +123,6 @@ app.include_router(alerts.router, prefix=settings.API_V1_STR)
 app.include_router(users.router, prefix=settings.API_V1_STR)
 app.include_router(system.router, prefix=settings.API_V1_STR)
 app.include_router(settings_api.router, prefix=settings.API_V1_STR)
-app.include_router(servers.router, prefix=settings.API_V1_STR)
-app.include_router(agent.router, prefix=settings.API_V1_STR)
-app.include_router(notifications.router, prefix=settings.API_V1_STR)
 
 
 @app.get("/health", tags=["Health Check"])

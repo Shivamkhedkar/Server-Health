@@ -1,12 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../api/api';
-import { Server, Lock, User, Mail, ArrowRight, ShieldCheck, UserPlus, LogIn, Zap } from 'lucide-react';
+import { Server, Lock, User, ArrowRight, ShieldCheck, Zap } from 'lucide-react';
 
 export default function Login() {
-  const [isRegistering, setIsRegistering] = useState(false);
   const [username, setUsername] = useState('');
-  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -26,23 +24,13 @@ export default function Login() {
     setLoading(true);
 
     try {
-      if (isRegistering) {
-        const res = await api.post('/auth/register', { username, email, password });
-        localStorage.setItem('token', res.data.access_token);
-        localStorage.setItem('refreshToken', res.data.refresh_token);
-        localStorage.setItem('username', res.data.user.username);
-        localStorage.setItem('userEmail', res.data.user.email);
-        localStorage.setItem('role', res.data.user.role);
-        navigate('/dashboard');
-      } else {
-        const res = await api.post('/auth/login', { username, password });
-        localStorage.setItem('token', res.data.access_token);
-        localStorage.setItem('refreshToken', res.data.refresh_token);
-        localStorage.setItem('username', res.data.user.username);
-        localStorage.setItem('userEmail', res.data.user.email);
-        localStorage.setItem('role', res.data.user.role);
-        navigate('/dashboard');
-      }
+      const res = await api.post('/auth/login', { username, password });
+      localStorage.setItem('token', res.data.access_token);
+      localStorage.setItem('refreshToken', res.data.refresh_token);
+      localStorage.setItem('username', res.data.user.username);
+      localStorage.setItem('userEmail', res.data.user.email);
+      localStorage.setItem('role', res.data.user.role);
+      navigate('/dashboard');
     } catch (err) {
       if (err.code === 'ERR_NETWORK' || !err.response) {
         setError('Could not reach backend server on port 8000. Check that FastAPI is running.');
@@ -73,45 +61,17 @@ export default function Login() {
       {/* Clean Glassmorphic Login Card (No 3D tilt) */}
       <div className="w-full max-w-md relative z-10 glass-panel p-8 rounded-3xl border border-cyan-500/30 dark:border-cyan-500/20 shadow-2xl shadow-cyan-500/10 backdrop-blur-2xl transition-all duration-300">
         {/* Header Branding */}
-        <div className="text-center mb-6">
-          <div className="relative w-16 h-16 rounded-2xl bg-gradient-to-tr from-cyan-500 via-blue-600 to-indigo-600 mx-auto flex items-center justify-center shadow-xl shadow-cyan-500/30 mb-3">
+        <div className="text-center mb-8">
+          <div className="relative w-16 h-16 rounded-2xl bg-gradient-to-tr from-cyan-500 via-blue-600 to-indigo-600 mx-auto flex items-center justify-center shadow-xl shadow-cyan-500/30 mb-4">
             <Server className="w-9 h-9 text-white" />
             <div className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-emerald-400 rounded-full border-2 border-slate-900" />
           </div>
           <h1 className="text-2xl font-black text-white tracking-tight flex items-center justify-center space-x-2">
             <span>DevOps Monitor Pro</span>
           </h1>
-          <p className="text-xs text-cyan-300/80 mt-1 font-mono tracking-wide">
-            {isRegistering ? '⚡ Create your account' : '🔒 Enterprise System Monitoring'}
+          <p className="text-xs text-cyan-300/80 mt-1.5 font-mono tracking-wide">
+            🔒 Enterprise System Monitoring
           </p>
-        </div>
-
-        {/* Tab Switcher */}
-        <div className="flex bg-slate-900/90 p-1.5 rounded-xl border border-slate-800 mb-6">
-          <button
-            type="button"
-            onClick={() => { setIsRegistering(false); setError(''); }}
-            className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all flex items-center justify-center space-x-1.5 ${
-              !isRegistering
-                ? 'bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-lg shadow-cyan-500/25'
-                : 'text-slate-400 hover:text-white'
-            }`}
-          >
-            <LogIn className="w-3.5 h-3.5" />
-            <span>Sign In</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => { setIsRegistering(true); setError(''); }}
-            className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all flex items-center justify-center space-x-1.5 ${
-              isRegistering
-                ? 'bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-lg shadow-cyan-500/25'
-                : 'text-slate-400 hover:text-white'
-            }`}
-          >
-            <UserPlus className="w-3.5 h-3.5" />
-            <span>Create Account</span>
-          </button>
         </div>
 
         {error && (
@@ -135,23 +95,6 @@ export default function Login() {
               />
             </div>
           </div>
-
-          {isRegistering && (
-            <div>
-              <label className="block text-xs font-mono font-bold text-slate-300 uppercase tracking-wider mb-1.5">Email Address</label>
-              <div className="relative">
-                <Mail className="w-4 h-4 absolute left-3.5 top-3.5 text-cyan-400" />
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                  className="w-full pl-10 pr-4 py-2.5 bg-slate-900/90 border border-slate-800 focus:border-cyan-400 rounded-xl text-slate-100 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500/20 transition font-medium"
-                  placeholder="Enter email address"
-                />
-              </div>
-            </div>
-          )}
 
           <div>
             <label className="block text-xs font-mono font-bold text-slate-300 uppercase tracking-wider mb-1.5">Password</label>
@@ -181,7 +124,7 @@ export default function Login() {
               </span>
             ) : (
               <>
-                <span>{isRegistering ? 'Create Account & Access Dashboard' : 'Sign In to Dashboard'}</span>
+                <span>Sign In to Dashboard</span>
                 <ArrowRight className="w-4 h-4" />
               </>
             )}

@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, Request
 from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.core.limiter import limiter
-from app.core.security import refresh_access_token, revoke_token
+from app.core.security import refresh_access_token, revoke_token, require_admin
 from app.schemas.user import LoginRequest, Token, RefreshRequest, AccessToken, UserRegister
 from app.services.auth_service import authenticate_user, register_user
 
@@ -15,7 +15,7 @@ def login(request: Request, login_data: LoginRequest, db: Session = Depends(get_
     return authenticate_user(db, login_data)
 
 
-@router.post("/register", response_model=Token)
+@router.post("/register", response_model=Token, dependencies=[Depends(require_admin)])
 @limiter.limit("20/minute")
 def register(request: Request, register_data: UserRegister, db: Session = Depends(get_db)):
     return register_user(db, register_data)
