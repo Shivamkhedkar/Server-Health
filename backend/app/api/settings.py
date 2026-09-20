@@ -22,8 +22,11 @@ def _to_response(cfg: dict) -> SettingsResponse:
 
 
 @router.get("", response_model=SettingsResponse)
-def get_settings(db: Session = Depends(get_db)):
-    return _to_response(settings_service.get_all_settings(db))
+def get_settings(db: Session = Depends(get_db), current_user=Depends(get_current_user)):
+    cfg = settings_service.get_all_settings(db)
+    if current_user.role != "admin":
+        cfg["alert_recipient_email"] = ""
+    return _to_response(cfg)
 
 
 @router.put("", response_model=SettingsResponse, dependencies=[Depends(require_admin)])
