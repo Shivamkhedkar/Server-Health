@@ -13,4 +13,6 @@ class AgentMetricsIngest(BaseModel):
     hostname: Optional[str] = None
     ip_address: Optional[str] = None
     os_info: Optional[str] = None
+    mac_address: Optional[str] = None
+    uptime_seconds: Optional[float] = None
     timestamp: Optional[datetime] = None

@@ -6,9 +6,9 @@ DEFAULTS = {
     "cpu_threshold": "85",
     "ram_threshold": "90",
     "disk_threshold": "90",
-    "email_alerts_enabled": "false",
-    "telegram_alerts_enabled": "false",
-    "alert_recipient_email": "",
+    "email_alerts_enabled": "true",
+    "telegram_alerts_enabled": "true",
+    "alert_recipient_email": "khedkarshivam11@gmail.com",
     "telegram_chat_id_override": "",  # optional per-deployment override of env chat id
     "alert_cooldown_minutes": "15",
     "metrics_retention_days": "90",  # rows older than this are pruned by the background cleanup task

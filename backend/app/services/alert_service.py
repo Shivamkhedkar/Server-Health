@@ -81,7 +81,7 @@ def check_and_raise_server_alerts(db: Session, server: Server, snap: dict) -> No
         alert = Alert(server_id=server.id, alert_type=alert_type, severity=severity, message=message)
         db.add(alert)
         db.commit()
-        dispatch_alert_notifications(db, alert_type, severity, message)
+        dispatch_alert_notifications(db, alert_type, severity, message, server_id=server.id)
 
     # Auto-resolve "Server Offline" alert if present
     offline_alerts = (
@@ -99,10 +99,22 @@ def check_and_raise_server_alerts(db: Session, server: Server, snap: dict) -> No
         db.commit()
 
 
-def acknowledge_alert(db: Session, alert_id: int):
+def acknowledge_alert(db: Session, alert_id: int, user: Optional[User] = None):
+    if user and user.role != "admin":
+        alert = db.query(Alert).filter(Alert.id == alert_id).first()
+        if not alert:
+            raise HTTPException(status_code=403, detail="Viewer role requires administrator privileges or server ownership")
+        if alert.server_id:
+            srv = db.query(Server).filter(Server.id == alert.server_id).first()
+            if not srv or srv.user_id != user.id:
+                raise HTTPException(status_code=403, detail="Not authorized to acknowledge alerts for this server")
+        else:
+            raise HTTPException(status_code=403, detail="Viewer role requires administrator privileges")
+
     alert = db.query(Alert).filter(Alert.id == alert_id).first()
     if not alert:
         raise HTTPException(status_code=404, detail="Alert record not found")
+
     alert.acknowledged = True
     db.commit()
     db.refresh(alert)

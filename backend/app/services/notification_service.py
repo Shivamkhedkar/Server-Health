@@ -2,22 +2,26 @@ import logging
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
+from typing import Optional
 
 import httpx
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
+from app.models.server import Server
+from app.models.user import User
+from app.models.notification_pref import NotificationPref
 from app.services import settings_service
 
 logger = logging.getLogger("devops_monitor.notifications")
 
 
-def send_email_alert(db: Session, subject: str, message: str) -> tuple[bool, str]:
+def send_email_alert(db: Session, subject: str, message: str, recipient_override: Optional[str] = None) -> tuple[bool, str]:
     cfg = settings_service.get_all_settings(db)
     if cfg.get("email_alerts_enabled", "false").lower() != "true":
         return False, "Email alerts are disabled."
 
-    recipient = cfg.get("alert_recipient_email", "").strip()
+    recipient = recipient_override or cfg.get("alert_recipient_email", "").strip()
     if not recipient:
         return False, "No alert recipient email configured."
 
@@ -43,13 +47,13 @@ def send_email_alert(db: Session, subject: str, message: str) -> tuple[bool, str
         return False, f"Failed to send email alert: {exc}"
 
 
-def send_telegram_alert(db: Session, message: str) -> tuple[bool, str]:
+def send_telegram_alert(db: Session, message: str, chat_id_override: Optional[str] = None) -> tuple[bool, str]:
     cfg = settings_service.get_all_settings(db)
     if cfg.get("telegram_alerts_enabled", "false").lower() != "true":
         return False, "Telegram alerts are disabled."
 
     bot_token = settings.TELEGRAM_BOT_TOKEN
-    chat_id = cfg.get("telegram_chat_id_override", "").strip() or settings.TELEGRAM_CHAT_ID
+    chat_id = chat_id_override or cfg.get("telegram_chat_id_override", "").strip() or settings.TELEGRAM_CHAT_ID
 
     if not bot_token or not chat_id:
         return False, "Telegram bot token or chat ID is not configured."
@@ -71,14 +75,46 @@ def send_telegram_alert(db: Session, message: str) -> tuple[bool, str]:
         return False, f"Failed to send Telegram alert: {exc}"
 
 
-def dispatch_alert_notifications(db: Session, alert_type: str, severity: str, message: str) -> None:
+def dispatch_alert_notifications(
+    db: Session,
+    alert_type: str,
+    severity: str,
+    message: str,
+    server_id: Optional[int] = None,
+    user_id: Optional[int] = None,
+) -> None:
     """Fire-and-log notification dispatch for a newly created alert.
-    Failures are logged but never raised - a broken SMTP/Telegram config
-    should not prevent the alert from being recorded or the app from working."""
+    Per-user notification preferences (NotificationPref) for the server owner are loaded
+    and respected when available, falling back to global settings if omitted."""
     subject = f"{severity}: {alert_type}"
-    ok_email, msg_email = send_email_alert(db, subject, message)
-    ok_tg, msg_tg = send_telegram_alert(db, message)
-    if not ok_email:
-        logger.debug("Email notification skipped/failed: %s", msg_email)
-    if not ok_tg:
-        logger.debug("Telegram notification skipped/failed: %s", msg_tg)
+    email_recipient = None
+    telegram_chat_id = None
+    email_enabled = True
+    telegram_enabled = True
+
+    target_user = None
+    if server_id is not None:
+        srv = db.query(Server).filter(Server.id == server_id).first()
+        if srv and srv.user:
+            target_user = srv.user
+    elif user_id is not None:
+        target_user = db.query(User).filter(User.id == user_id).first()
+
+    if target_user:
+        pref = db.query(NotificationPref).filter(NotificationPref.user_id == target_user.id).first()
+        if pref:
+            email_enabled = pref.email_enabled
+            telegram_enabled = pref.telegram_enabled
+            if pref.telegram_chat_id:
+                telegram_chat_id = pref.telegram_chat_id
+        email_recipient = target_user.email
+
+    if email_enabled:
+        ok_email, msg_email = send_email_alert(db, subject, message, recipient_override=email_recipient)
+        if not ok_email:
+            logger.debug("Email notification skipped/failed: %s", msg_email)
+
+    if telegram_enabled:
+        ok_tg, msg_tg = send_telegram_alert(db, message, chat_id_override=telegram_chat_id)
+        if not ok_tg:
+            logger.debug("Telegram notification skipped/failed: %s", msg_tg)

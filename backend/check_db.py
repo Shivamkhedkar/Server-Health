@@ -2,8 +2,10 @@ import os
 from sqlalchemy import inspect
 from app.core.database import engine, SessionLocal
 from app.models.user import User
+from app.models.server import Server
 from app.models.metric import Metric
 from app.models.alert import Alert
+from app.models.notification_pref import NotificationPref
 from app.models.setting import AppSetting
 
 def check_database():

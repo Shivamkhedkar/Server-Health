@@ -83,7 +83,7 @@ class OfflineDetectorTask:
                     )
                     db.add(alert)
                     db.commit()
-                    dispatch_alert_notifications(db, "Server Offline", "CRITICAL", message)
+                    dispatch_alert_notifications(db, "Server Offline", "CRITICAL", message, server_id=server.id)
                 else:
                     db.commit()
         finally:
