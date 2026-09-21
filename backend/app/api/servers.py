@@ -26,9 +26,9 @@ def create_server(
     current_user: User = Depends(get_current_user),
 ):
     server, raw_key = server_service.create_server(db, current_user, payload)
-    resp = ServerCreateResponse.model_validate(server)
-    resp.api_key = raw_key
-    return resp
+    data = ServerResponse.model_validate(server).model_dump()
+    data["api_key"] = raw_key
+    return ServerCreateResponse(**data)
 
 
 @router.get("", response_model=List[ServerResponse])

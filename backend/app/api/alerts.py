@@ -47,13 +47,9 @@ def ack_all_alerts(db: Session = Depends(get_db)):
     return bulk_acknowledge_alerts(db)
 
 
-@router.post("/{alert_id}/acknowledge", response_model=AlertResponse)
-def ack_alert(
-    alert_id: int,
-    db: Session = Depends(get_db),
-    current_user=Depends(get_current_user),
-):
-    return acknowledge_alert(db, alert_id, user=current_user)
+@router.post("/{alert_id}/acknowledge", response_model=AlertResponse, dependencies=[Depends(require_admin)])
+def ack_alert(alert_id: int, db: Session = Depends(get_db)):
+    return acknowledge_alert(db, alert_id)
 
 
 @router.post("", response_model=AlertResponse, dependencies=[Depends(require_admin)])

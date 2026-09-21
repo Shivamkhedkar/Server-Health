@@ -11,7 +11,6 @@ import platform
 import socket
 import sys
 import time
-import uuid
 import urllib.error
 import urllib.request
 from typing import List, Dict, Any
@@ -24,42 +23,21 @@ except ImportError:
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 logger = logging.getLogger("shp_agent")
 
-BUFFER_FILE = ".shp_agent_buffer.json"
-
 
 class SHPAgent:
     def __init__(
         self,
         server_url: str,
         api_key: str,
-        interval: int = 5,
+        interval: int = 10,
         max_buffer_size: int = 100,
     ):
         self.server_url = server_url.rstrip("/")
         self.api_key = api_key
         self.interval = interval
         self.max_buffer_size = max_buffer_size
-        self.buffer: List[Dict[str, Any]] = self._load_disk_buffer()
-        self.ingest_endpoint = f"{self.server_url}/api/agent/ingest"
-
-    def _load_disk_buffer(self) -> List[Dict[str, Any]]:
-        if os.path.exists(BUFFER_FILE):
-            try:
-                with open(BUFFER_FILE, "r", encoding="utf-8") as f:
-                    data = json.load(f)
-                    if isinstance(data, list):
-                        logger.info("Loaded %d unsent metric sample(s) from persistent disk buffer.", len(data))
-                        return data
-            except Exception as exc:
-                logger.warning("Could not read disk buffer file: %s", exc)
-        return []
-
-    def _save_disk_buffer(self) -> None:
-        try:
-            with open(BUFFER_FILE, "w", encoding="utf-8") as f:
-                json.dump(self.buffer, f)
-        except Exception as exc:
-            logger.warning("Could not persist buffer to disk: %s", exc)
+        self.buffer: List[Dict[str, Any]] = []
+        self.ingest_endpoint = f"{self.server_url}/api/agent/metrics"
 
     def collect_metrics(self) -> Dict[str, Any]:
         if not psutil:
@@ -68,8 +46,6 @@ class SHPAgent:
         vm = psutil.virtual_memory()
         disk = psutil.disk_usage("/")
         net = psutil.net_io_counters()
-        mac_addr = ":".join([f"{(uuid.getnode() >> i) & 0xff:02x}" for i in range(0, 48, 8)][::-1])
-        uptime_sec = round(time.time() - psutil.boot_time(), 1)
 
         return {
             "cpu_usage": round(psutil.cpu_percent(interval=0.5), 1),
@@ -80,8 +56,6 @@ class SHPAgent:
             "process_count": len(psutil.pids()),
             "hostname": socket.gethostname(),
             "os_info": f"{platform.system()} {platform.release()}",
-            "mac_address": mac_addr,
-            "uptime_seconds": uptime_sec,
             "timestamp": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
         }
 
@@ -114,7 +88,6 @@ class SHPAgent:
         if len(self.buffer) >= self.max_buffer_size:
             self.buffer.pop(0)  # Evict oldest metric sample
         self.buffer.append(payload)
-        self._save_disk_buffer()
 
     def flush_buffer(self) -> int:
         flushed = 0
@@ -125,7 +98,6 @@ class SHPAgent:
                 flushed += 1
             else:
                 break
-        self._save_disk_buffer()
         return flushed
 
     def run_once(self) -> bool:
@@ -150,8 +122,8 @@ class SHPAgent:
                     backoff = 0
                     time.sleep(self.interval)
                 else:
-                    backoff = min(60, backoff * 2 if backoff > 0 else 2)
-                    logger.info("Retrying in %d seconds (exponential backoff)...", backoff)
+                    backoff = min(60, backoff + 5 if backoff > 0 else 5)
+                    logger.info("Retrying in %d seconds...", backoff)
                     time.sleep(backoff)
             except KeyboardInterrupt:
                 logger.info("Agent stopped by user signal.")
@@ -176,8 +148,8 @@ def main():
     parser.add_argument(
         "--interval",
         type=int,
-        default=int(os.getenv("SHP_INTERVAL", "5")),
-        help="Collection interval in seconds (default: 5)",
+        default=int(os.getenv("SHP_INTERVAL", "10")),
+        help="Collection interval in seconds",
     )
     parser.add_argument("--once", action="store_true", help="Run collection once and exit")
 

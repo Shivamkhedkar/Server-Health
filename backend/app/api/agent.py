@@ -12,7 +12,6 @@ from app.services.metric_service import evaluate_status
 router = APIRouter(prefix="/agent", tags=["Agent Ingest"])
 
 
-@router.post("/ingest")
 @router.post("/metrics")
 def ingest_agent_metrics(
     payload: AgentMetricsIngest,
