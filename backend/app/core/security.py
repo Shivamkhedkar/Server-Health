@@ -3,6 +3,7 @@ from typing import Optional, Any, Union
 import hashlib
 import hmac
 import os
+import secrets
 from jose import jwt, JWTError
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
@@ -64,22 +65,53 @@ def is_token_revoked(token: str) -> bool:
     return False
 
 
+def generate_api_key() -> tuple[str, str]:
+    raw_key = "shp_" + secrets.token_hex(16)
+    key_hash = hash_api_key(raw_key)
+    return raw_key, key_hash
+
+
+def hash_api_key(raw_key: str) -> str:
+    return hashlib.sha256(raw_key.encode("utf-8")).hexdigest()
+
+
+PBKDF2_ITERATIONS = 600000
+
+
 def get_password_hash(password: str) -> str:
     salt = os.urandom(16)
-    key = hashlib.pbkdf2_hmac("sha256", password.encode("utf-8"), salt, 100000)
-    return salt.hex() + "$" + key.hex()
+    key = hashlib.pbkdf2_hmac("sha256", password.encode("utf-8"), salt, PBKDF2_ITERATIONS)
+    return f"pbkdf2_sha256${PBKDF2_ITERATIONS}${salt.hex()}${key.hex()}"
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     try:
-        if not hashed_password or "$" not in hashed_password:
+        if not hashed_password:
             return False
-        salt_hex, key_hex = hashed_password.split("$", 1)
-        salt = bytes.fromhex(salt_hex)
-        key = hashlib.pbkdf2_hmac("sha256", plain_password.encode("utf-8"), salt, 100000)
-        return hmac.compare_digest(key.hex(), key_hex)
+        if hashed_password.startswith("pbkdf2_sha256$"):
+            parts = hashed_password.split("$")
+            if len(parts) != 4:
+                return False
+            _, iters_str, salt_hex, key_hex = parts
+            iters = int(iters_str)
+            salt = bytes.fromhex(salt_hex)
+            key = hashlib.pbkdf2_hmac("sha256", plain_password.encode("utf-8"), salt, iters)
+            return hmac.compare_digest(key.hex(), key_hex)
+        elif "$" in hashed_password:
+            # Legacy 100k iterations format (<salt_hex>$<key_hex>)
+            salt_hex, key_hex = hashed_password.split("$", 1)
+            salt = bytes.fromhex(salt_hex)
+            key = hashlib.pbkdf2_hmac("sha256", plain_password.encode("utf-8"), salt, 100000)
+            return hmac.compare_digest(key.hex(), key_hex)
+        return False
     except Exception:
         return False
+
+
+def needs_rehash(hashed_password: str) -> bool:
+    if not hashed_password or not hashed_password.startswith(f"pbkdf2_sha256${PBKDF2_ITERATIONS}$"):
+        return True
+    return False
 
 
 def create_access_token(subject: Union[str, Any], expires_delta: Optional[timedelta] = None) -> str:
@@ -127,7 +159,7 @@ def get_current_user(db: Session = Depends(get_db), token: Optional[str] = Depen
         detail="Could not validate credentials",
         headers={"WWW-Authenticate": "Bearer"},
     )
-    if not token:
+    if not token or is_token_revoked(token):
         raise credentials_exception
     try:
         payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
@@ -164,7 +196,7 @@ def get_user_from_token(db: Session, token: Optional[str]) -> Optional[User]:
     """Same validation as get_current_user, but returns None instead of
     raising - used by the metrics websocket, which can't rely on FastAPI's
     HTTP dependency-injection/exception machinery for a ws handshake."""
-    if not token:
+    if not token or is_token_revoked(token):
         return None
     try:
         payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])

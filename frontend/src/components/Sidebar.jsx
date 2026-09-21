@@ -32,6 +32,7 @@ export default function Sidebar() {
   }, []);
 
   const navItems = [
+    { path: '/servers', label: 'Servers', icon: Server },
     { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
     {
       path: '/alerts',

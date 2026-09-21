@@ -1,6 +1,7 @@
 import psutil
 import time
 from sqlalchemy.orm import Session
+from typing import Optional
 from datetime import datetime, timedelta, timezone
 from app.models.metric import Metric
 from app.models.alert import Alert
@@ -15,6 +16,21 @@ _start_time = time.time()
 psutil.cpu_percent(interval=None)
 
 
+def evaluate_status(cpu: float, ram: float, disk: float, thresholds: dict = None) -> str:
+    """Unified status evaluator based on CPU, RAM, and Disk metrics against thresholds."""
+    if thresholds is None:
+        thresholds = {"cpu": 85.0, "ram": 90.0, "disk": 90.0}
+    cpu_t = float(thresholds.get("cpu", 85.0))
+    ram_t = float(thresholds.get("ram", 90.0))
+    disk_t = float(thresholds.get("disk", 90.0))
+
+    if cpu >= cpu_t or ram >= ram_t or disk >= disk_t:
+        return "CRITICAL"
+    if cpu >= (cpu_t * 0.8) or ram >= (ram_t * 0.8) or disk >= (disk_t * 0.8):
+        return "WARNING"
+    return "HEALTHY"
+
+
 def _fallback_snapshot() -> dict:
     """Used only if the background collector hasn't produced a sample yet
     (e.g. immediately at process startup, or in tests that bypass lifespan)."""
@@ -22,11 +38,7 @@ def _fallback_snapshot() -> dict:
     vm = psutil.virtual_memory()
     disk = psutil.disk_usage("/")
     net = psutil.net_io_counters()
-    status_str = "HEALTHY"
-    if cpu > 85.0 or vm.percent > 90.0 or disk.percent > 90.0:
-        status_str = "CRITICAL"
-    elif cpu > 70.0 or vm.percent > 75.0 or disk.percent > 80.0:
-        status_str = "WARNING"
+    status_str = evaluate_status(cpu, vm.percent, disk.percent)
     return {
         "timestamp": time.time(),
         "cpu_usage": cpu,
@@ -162,10 +174,13 @@ def delete_old_metrics(db: Session, retention_days: int) -> int:
     return deleted
 
 
-def get_metrics_history(db: Session, hours: int = 24, limit: int = 2000):
+def get_metrics_history(db: Session, server_id: Optional[int] = None, hours: int = 24, limit: int = 2000):
     """Returns real persisted metric samples."""
     since = datetime.now(timezone.utc) - timedelta(hours=hours)
-    query = db.query(Metric).filter(Metric.timestamp >= since).order_by(Metric.timestamp.asc())
+    query = db.query(Metric).filter(Metric.timestamp >= since)
+    if server_id is not None:
+        query = query.filter(Metric.server_id == server_id)
+    query = query.order_by(Metric.timestamp.asc())
     total = query.count()
     if total > limit:
         stride = max(1, total // limit)
