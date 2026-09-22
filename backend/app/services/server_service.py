@@ -15,6 +15,7 @@ def create_server(db: Session, user: User, payload: ServerCreate) -> tuple[Serve
         name=payload.name,
         hostname=payload.hostname,
         ip_address=payload.ip_address,
+        environment=payload.environment or "Production",
         api_key_hash=key_hash,
         status="offline",
     )

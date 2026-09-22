@@ -7,6 +7,7 @@ class ServerBase(BaseModel):
     name: str = Field(..., min_length=1, max_length=100)
     hostname: Optional[str] = Field(None, max_length=100)
     ip_address: Optional[str] = Field(None, max_length=45)
+    environment: Optional[str] = Field("Production", max_length=50)
 
 
 class ServerCreate(ServerBase):
@@ -17,6 +18,7 @@ class ServerUpdate(BaseModel):
     name: Optional[str] = Field(None, min_length=1, max_length=100)
     hostname: Optional[str] = Field(None, max_length=100)
     ip_address: Optional[str] = Field(None, max_length=45)
+    environment: Optional[str] = Field(None, max_length=50)
 
 
 class ServerResponse(ServerBase):

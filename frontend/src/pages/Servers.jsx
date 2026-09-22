@@ -30,6 +30,7 @@ export default function Servers() {
   const [newServerName, setNewServerName] = useState('');
   const [newServerHostname, setNewServerHostname] = useState('');
   const [newServerIp, setNewServerIp] = useState('');
+  const [newServerEnv, setNewServerEnv] = useState('Production');
   const [creating, setCreating] = useState(false);
 
   // Created/Regenerated Key Modal
@@ -38,6 +39,7 @@ export default function Servers() {
   const [copiedCmd, setCopiedCmd] = useState(false);
 
   const navigate = useNavigate();
+  const backendUrl = `${window.location.protocol}//${window.location.hostname}:8000`;
 
   const loadServers = async () => {
     setLoading(true);
@@ -65,11 +67,13 @@ export default function Servers() {
         name: newServerName.trim(),
         hostname: newServerHostname.trim() || undefined,
         ip_address: newServerIp.trim() || undefined,
+        environment: newServerEnv,
       });
       setIsAddModalOpen(false);
       setNewServerName('');
       setNewServerHostname('');
       setNewServerIp('');
+      setNewServerEnv('Production');
       setCreatedResult({
         name: res.name,
         apiKey: res.api_key,
@@ -147,10 +151,6 @@ export default function Servers() {
         Offline
       </span>
     );
-  };
-
-  const serverUrl = window.location.origin;
-
   return (
     <div className="space-y-6">
       {/* Page Header */}
@@ -314,6 +314,20 @@ export default function Servers() {
                   className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 />
               </div>
+              <div>
+                <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
+                  Environment
+                </label>
+                <select
+                  value={newServerEnv}
+                  onChange={(e) => setNewServerEnv(e.target.value)}
+                  className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 font-medium text-slate-800 dark:text-slate-200"
+                >
+                  <option value="Production">Production</option>
+                  <option value="Staging">Staging</option>
+                  <option value="Development">Development</option>
+                </select>
+              </div>
               <div className="flex justify-end gap-3 pt-4">
                 <button
                   type="button"
@@ -381,12 +395,12 @@ export default function Servers() {
               </label>
               <div className="relative">
                 <pre className="p-3 bg-slate-950 text-emerald-400 rounded-xl text-xs font-mono overflow-x-auto whitespace-pre-wrap border border-slate-800">
-                  {`curl -O ${serverUrl}/agent/shp_agent.py && python3 shp_agent.py --server-url ${serverUrl} --api-key ${createdResult.apiKey}`}
+                  {`curl -O ${backendUrl}/agent/shp_agent.py && python3 shp_agent.py --server-url ${backendUrl} --api-key ${createdResult.apiKey}`}
                 </pre>
                 <button
                   onClick={() =>
                     copyToClipboard(
-                      `curl -O ${serverUrl}/agent/shp_agent.py && python3 shp_agent.py --server-url ${serverUrl} --api-key ${createdResult.apiKey}`,
+                      `curl -O ${backendUrl}/agent/shp_agent.py && python3 shp_agent.py --server-url ${backendUrl} --api-key ${createdResult.apiKey}`,
                       setCopiedCmd
                     )
                   }

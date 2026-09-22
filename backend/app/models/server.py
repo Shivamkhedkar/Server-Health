@@ -12,6 +12,7 @@ class Server(Base):
     name = Column(String(100), nullable=False)
     hostname = Column(String(100), nullable=True)
     ip_address = Column(String(45), nullable=True)
+    environment = Column(String(50), default="Production", nullable=True)
     os_info = Column(String(200), nullable=True)
     api_key_hash = Column(String(64), unique=True, index=True, nullable=False)
     status = Column(String(20), default="offline", index=True)
