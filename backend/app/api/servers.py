@@ -122,12 +122,17 @@ def get_server_current_metrics(
         .order_by(Metric.timestamp.desc())
         .first()
     )
+    from app.api.agent import agent_cache
+    cache_entry = agent_cache.get(server.id, {})
+    per_core = cache_entry.get("cpu_per_core", [])
+
     if not latest:
         return {
             "id": 0,
             "server_id": server.id,
             "timestamp": server.last_seen or server.created_at,
             "cpu_usage": 0.0,
+            "cpu_per_core": per_core,
             "ram_usage": 0.0,
             "disk_usage": 0.0,
             "network_sent_mb": 0.0,
@@ -135,7 +140,21 @@ def get_server_current_metrics(
             "process_count": 0,
             "status": server.status.upper(),
         }
-    return latest
+
+    res = {
+        "id": latest.id,
+        "server_id": latest.server_id,
+        "timestamp": latest.timestamp,
+        "cpu_usage": latest.cpu_usage,
+        "cpu_per_core": per_core,
+        "ram_usage": latest.ram_usage,
+        "disk_usage": latest.disk_usage,
+        "network_sent_mb": latest.network_sent_mb,
+        "network_recv_mb": latest.network_recv_mb,
+        "process_count": latest.process_count,
+        "status": latest.status,
+    }
+    return res
 
 
 @router.get("/{server_id}/metrics/history")

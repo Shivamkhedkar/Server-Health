@@ -1,4 +1,6 @@
+import os
 from fastapi import APIRouter, Depends, Header, HTTPException, status
+from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 from datetime import datetime, timezone
 from typing import Optional
@@ -10,6 +12,24 @@ from app.services.server_service import get_server_by_api_key
 from app.services.metric_service import evaluate_status
 
 router = APIRouter(prefix="/agent", tags=["Agent Ingest"])
+
+# In-memory store for recent rich agent telemetry (e.g. cpu_per_core)
+agent_cache: dict = {}
+
+
+@router.get("/shp_agent.py")
+def download_agent_script():
+    """Serves the standalone agent script for direct download via curl or web request."""
+    possible_paths = [
+        os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", "agent", "shp_agent.py")),
+        os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "agent", "shp_agent.py")),
+        os.path.abspath("agent/shp_agent.py"),
+        os.path.abspath("../agent/shp_agent.py"),
+    ]
+    for agent_path in possible_paths:
+        if os.path.exists(agent_path):
+            return FileResponse(agent_path, media_type="text/x-python", filename="shp_agent.py")
+    raise HTTPException(status_code=404, detail="Agent script file not found on server")
 
 
 @router.post("/metrics")
@@ -72,6 +92,13 @@ def ingest_agent_metrics(
     db.refresh(server)
     from app.services.alert_service import check_and_raise_server_alerts
     check_and_raise_server_alerts(db, server, payload.model_dump())
+
+    agent_cache[server.id] = {
+        "cpu_per_core": payload.cpu_per_core or [],
+        "hostname": payload.hostname,
+        "os_info": payload.os_info,
+        "timestamp": metric_ts.isoformat(),
+    }
 
     return {
         "status": "accepted",

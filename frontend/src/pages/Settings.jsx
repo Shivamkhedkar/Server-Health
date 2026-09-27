@@ -41,7 +41,7 @@ export default function Settings() {
   const [activeTab, setActiveTab] = useState('THRESHOLDS');
   const [form, setForm] = useState(DEFAULTS);
   const [meta, setMeta] = useState({ smtp_configured: false, telegram_configured: false });
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [pruning, setPruning] = useState(false);
   const [toast, setToast] = useState(null);

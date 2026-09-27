@@ -1,23 +1,16 @@
-import React, { Suspense, lazy } from 'react';
+import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { ThemeProvider } from './context/ThemeContext';
 import Navbar from './components/Navbar';
 import Sidebar from './components/Sidebar';
 import LiveTelemetryBackground from './components/LiveTelemetryBackground';
 import Login from './pages/Login';
-
-const Dashboard = lazy(() => import('./pages/Dashboard'));
-const Alerts = lazy(() => import('./pages/Alerts'));
-const History = lazy(() => import('./pages/History'));
-const Settings = lazy(() => import('./pages/Settings'));
-const Team = lazy(() => import('./pages/Team'));
-const Servers = lazy(() => import('./pages/Servers'));
-
-const PageLoader = () => (
-  <div className="flex items-center justify-center h-64 text-slate-500">
-    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
-  </div>
-);
+import Dashboard from './pages/Dashboard';
+import Alerts from './pages/Alerts';
+import History from './pages/History';
+import Settings from './pages/Settings';
+import Team from './pages/Team';
+import Servers from './pages/Servers';
 
 const ProtectedLayout = () => {
   const token = localStorage.getItem('token');
@@ -34,18 +27,16 @@ const ProtectedLayout = () => {
         <main className="relative flex-1 overflow-y-auto p-4 md:p-6 space-y-6 bg-slate-100/60 dark:bg-slate-950/90">
           <LiveTelemetryBackground />
           <div className="relative z-10">
-            <Suspense fallback={<PageLoader />}>
-              <Routes>
-                <Route path="/servers" element={<Servers />} />
-                <Route path="/servers/:id/dashboard" element={<Dashboard />} />
-                <Route path="/dashboard" element={<Dashboard />} />
-                <Route path="/alerts" element={<Alerts />} />
-                <Route path="/history" element={<History />} />
-                <Route path="/settings" element={<Settings />} />
-                <Route path="/team" element={isAdmin ? <Team /> : <Navigate to="/servers" replace />} />
-                <Route path="*" element={<Navigate to="/servers" replace />} />
-              </Routes>
-            </Suspense>
+            <Routes>
+              <Route path="/servers" element={<Servers />} />
+              <Route path="/servers/:id/dashboard" element={<Dashboard />} />
+              <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/alerts" element={<Alerts />} />
+              <Route path="/history" element={<History />} />
+              <Route path="/settings" element={<Settings />} />
+              <Route path="/team" element={isAdmin ? <Team /> : <Navigate to="/servers" replace />} />
+              <Route path="*" element={<Navigate to="/servers" replace />} />
+            </Routes>
           </div>
         </main>
       </div>

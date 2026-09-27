@@ -47,8 +47,11 @@ class SHPAgent:
         disk = psutil.disk_usage("/")
         net = psutil.net_io_counters()
 
+        per_cpu = [round(c, 1) for c in psutil.cpu_percent(percpu=True)]
+
         return {
             "cpu_usage": round(psutil.cpu_percent(interval=0.5), 1),
+            "cpu_per_core": per_cpu,
             "ram_usage": round(vm.percent, 1),
             "disk_usage": round(disk.percent, 1),
             "network_sent_mb": round(net.bytes_sent / (1024 * 1024), 2),
@@ -68,6 +71,7 @@ class SHPAgent:
                 "Content-Type": "application/json",
                 "X-API-Key": self.api_key,
                 "User-Agent": "SHPAgent/1.0",
+                "bypass-tunnel-reminder": "true",
             },
             method="POST",
         )
@@ -148,7 +152,7 @@ def main():
     parser.add_argument(
         "--interval",
         type=int,
-        default=int(os.getenv("SHP_INTERVAL", "10")),
+        default=int(os.getenv("SHP_INTERVAL", "2")),
         help="Collection interval in seconds",
     )
     parser.add_argument("--once", action="store_true", help="Run collection once and exit")

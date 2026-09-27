@@ -151,6 +151,8 @@ export default function Servers() {
         Offline
       </span>
     );
+  };
+
   return (
     <div className="space-y-6">
       {/* Page Header */}
@@ -227,6 +229,10 @@ export default function Servers() {
                 </div>
 
                 <div className="space-y-2 my-4 text-xs text-slate-600 dark:text-slate-400 bg-slate-50 dark:bg-slate-800/50 p-3 rounded-xl border border-slate-100 dark:border-slate-800">
+                  <div className="flex justify-between">
+                    <span className="text-slate-400">Environment:</span>
+                    <span className="font-semibold text-indigo-500">{srv.environment || 'Production'}</span>
+                  </div>
                   <div className="flex justify-between">
                     <span className="text-slate-400">OS Info:</span>
                     <span className="font-medium truncate max-w-[180px]">{srv.os_info || 'Unknown'}</span>

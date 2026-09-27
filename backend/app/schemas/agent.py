@@ -1,10 +1,11 @@
 from pydantic import BaseModel, Field
 from datetime import datetime
-from typing import Optional
+from typing import Optional, List
 
 
 class AgentMetricsIngest(BaseModel):
     cpu_usage: float = Field(..., ge=0.0, le=100.0)
+    cpu_per_core: Optional[List[float]] = None
     ram_usage: float = Field(..., ge=0.0, le=100.0)
     disk_usage: float = Field(..., ge=0.0, le=100.0)
     network_sent_mb: float = Field(0.0, ge=0.0)
