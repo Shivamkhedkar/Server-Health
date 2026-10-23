@@ -37,9 +37,11 @@ export default function Servers() {
   const [copiedKey, setCopiedKey] = useState(false);
   const [copiedCmd, setCopiedCmd] = useState(false);
   const [installTab, setInstallTab] = useState('service');
-  const defaultBackendUrl = window.location.port === '3000'
-    ? `${window.location.protocol}//${window.location.hostname}:8000`
-    : window.location.origin;
+  const defaultBackendUrl = import.meta.env.VITE_API_URL
+    ? import.meta.env.VITE_API_URL.replace(/\/api\/?$/, '').replace(/\/$/, '')
+    : (window.location.port === '3000'
+        ? `${window.location.protocol}//${window.location.hostname}:8000`
+        : window.location.origin);
   const [serverUrlOverride, setServerUrlOverride] = useState(defaultBackendUrl);
 
   const navigate = useNavigate();
