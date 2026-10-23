@@ -7,11 +7,12 @@ from app.core.config import settings
 logger = logging.getLogger("devops_monitor.database")
 
 try:
-    _tmp_engine = create_engine(settings.DATABASE_URL, pool_pre_ping=True)
+    connect_args = {"check_same_thread": False} if settings.DATABASE_URL.startswith("sqlite") else {}
+    _tmp_engine = create_engine(settings.DATABASE_URL, pool_pre_ping=True, connect_args=connect_args)
     with _tmp_engine.connect() as conn:
         conn.execute(text("SELECT 1"))
     engine = _tmp_engine
-    logger.info("Successfully connected to PostgreSQL database.")
+    logger.info("Successfully connected to database.")
 except Exception as exc:
     if settings.ENVIRONMENT.lower() in ("production", "prod"):
         logger.critical("CRITICAL: Failed to connect to PostgreSQL in PRODUCTION mode (%s). Halting application.", exc)

@@ -33,13 +33,29 @@ export default function Servers() {
   const [newServerEnv, setNewServerEnv] = useState('Production');
   const [creating, setCreating] = useState(false);
 
-  // Created/Regenerated Key Modal
   const [createdResult, setCreatedResult] = useState(null);
   const [copiedKey, setCopiedKey] = useState(false);
   const [copiedCmd, setCopiedCmd] = useState(false);
+  const [installTab, setInstallTab] = useState('service');
+  const defaultBackendUrl = window.location.port === '3000'
+    ? `${window.location.protocol}//${window.location.hostname}:8000`
+    : window.location.origin;
+  const [serverUrlOverride, setServerUrlOverride] = useState(defaultBackendUrl);
 
   const navigate = useNavigate();
-  const backendUrl = `${window.location.protocol}//${window.location.hostname}:8000`;
+
+  const getInstallCommand = () => {
+    const activeUrl = (serverUrlOverride || defaultBackendUrl).replace(/\/$/, '');
+    const apiKey = createdResult?.apiKey || 'YOUR_API_KEY';
+
+    if (installTab === 'service') {
+      return `pip install psutil requests; Invoke-WebRequest -Uri "${activeUrl}/api/agent/shp_agent.py" -Headers @{"bypass-tunnel-reminder"="true"} -OutFile "$env:USERPROFILE\\shp_agent.py"; Register-ScheduledTask -TaskName "DevOpsAgent" -Trigger (New-ScheduledTaskTrigger -AtLogOn) -Action (New-ScheduledTaskAction -Execute "pythonw.exe" -Argument "$env:USERPROFILE\\shp_agent.py --server-url ${activeUrl} --api-key ${apiKey}") -Description "DevOps Monitor Pro Agent" -Force; Start-ScheduledTask -TaskName "DevOpsAgent"`;
+    }
+    if (installTab === 'quick') {
+      return `pip install psutil requests; Invoke-WebRequest -Uri "${activeUrl}/api/agent/shp_agent.py" -Headers @{"bypass-tunnel-reminder"="true"} -OutFile "shp_agent.py"; python shp_agent.py --server-url ${activeUrl} --api-key ${apiKey}`;
+    }
+    return `pip install psutil requests && curl -sSL "${activeUrl}/api/agent/shp_agent.py" -o shp_agent.py && python3 shp_agent.py --server-url "${activeUrl}" --api-key "${apiKey}"`;
+  };
 
   const loadServers = async () => {
     setLoading(true);
@@ -395,31 +411,89 @@ export default function Servers() {
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1 flex items-center gap-1.5">
-                <Terminal className="h-4 w-4 text-indigo-500" />
-                One-Line Agent Install & Run Command:
-              </label>
+              <div className="flex items-center justify-between mb-1">
+                <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                  Target Server Backend URL:
+                </label>
+                <span className="text-[11px] text-slate-400">Edit if using custom tunnel/domain</span>
+              </div>
+              <input
+                type="text"
+                value={serverUrlOverride}
+                onChange={(e) => setServerUrlOverride(e.target.value)}
+                placeholder="e.g. https://your-backend.onrender.com or http://localhost:8000"
+                className="w-full px-3 py-2 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-mono text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 mb-4"
+              />
+            </div>
+
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <label className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                  <Terminal className="h-4 w-4 text-indigo-500" />
+                  Install &amp; Run Agent Command:
+                </label>
+                <div className="flex bg-slate-100 dark:bg-slate-800 p-0.5 rounded-lg text-[11px]">
+                  <button
+                    type="button"
+                    onClick={() => setInstallTab('service')}
+                    className={`px-2.5 py-1 rounded-md font-semibold transition-all ${
+                      installTab === 'service'
+                        ? 'bg-indigo-600 text-white shadow-sm'
+                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                    }`}
+                  >
+                    🛡️ Windows 24/7 Service
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setInstallTab('quick')}
+                    className={`px-2.5 py-1 rounded-md font-semibold transition-all ${
+                      installTab === 'quick'
+                        ? 'bg-indigo-600 text-white shadow-sm'
+                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                    }`}
+                  >
+                    ⚡ PowerShell Quick
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setInstallTab('linux')}
+                    className={`px-2.5 py-1 rounded-md font-semibold transition-all ${
+                      installTab === 'linux'
+                        ? 'bg-indigo-600 text-white shadow-sm'
+                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                    }`}
+                  >
+                    🐧 Linux / macOS
+                  </button>
+                </div>
+              </div>
+
               <div className="relative">
-                <pre className="p-3 bg-slate-950 text-emerald-400 rounded-xl text-xs font-mono overflow-x-auto whitespace-pre-wrap border border-slate-800">
-                  {`curl -O ${backendUrl}/agent/shp_agent.py && python3 shp_agent.py --server-url ${backendUrl} --api-key ${createdResult.apiKey}`}
+                <pre className="p-3 bg-slate-950 text-emerald-400 rounded-xl text-xs font-mono overflow-x-auto whitespace-pre-wrap border border-slate-800 max-h-40">
+                  {getInstallCommand()}
                 </pre>
                 <button
-                  onClick={() =>
-                    copyToClipboard(
-                      `curl -O ${backendUrl}/agent/shp_agent.py && python3 shp_agent.py --server-url ${backendUrl} --api-key ${createdResult.apiKey}`,
-                      setCopiedCmd
-                    )
-                  }
-                  className="absolute top-2 right-2 p-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-xs flex items-center gap-1"
+                  type="button"
+                  onClick={() => copyToClipboard(getInstallCommand(), setCopiedCmd)}
+                  className="absolute top-2 right-2 px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg text-xs flex items-center gap-1.5 border border-slate-700 shadow-sm"
                   title="Copy Command"
                 >
                   {copiedCmd ? <Check className="h-3.5 w-3.5 text-emerald-400" /> : <Copy className="h-3.5 w-3.5" />}
+                  {copiedCmd ? 'Copied!' : 'Copy Command'}
                 </button>
               </div>
+
+              <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-2">
+                {installTab === 'service' && '🛡️ Recommended: Runs silently in the background, survives reboots, no open terminal needed.'}
+                {installTab === 'quick' && '⚡ Quick Run: Runs directly in your friend\'s open PowerShell window for immediate testing.'}
+                {installTab === 'linux' && '🐧 Linux / Mac: Downloads and starts the Python daemon in bash.'}
+              </p>
             </div>
 
             <div className="flex justify-end pt-3">
               <button
+                type="button"
                 onClick={() => setCreatedResult(null)}
                 className="px-5 py-2 bg-slate-900 dark:bg-white text-white dark:text-slate-900 text-sm font-semibold rounded-xl shadow-sm"
               >

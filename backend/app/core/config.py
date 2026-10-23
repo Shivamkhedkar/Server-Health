@@ -68,6 +68,12 @@ class Settings(BaseSettings):
 
     @property
     def DATABASE_URL(self) -> str:
+        env_db_url = os.getenv("DATABASE_URL")
+        if env_db_url:
+            if env_db_url.startswith("postgres://"):
+                return env_db_url.replace("postgres://", "postgresql://", 1)
+            return env_db_url
+
         import urllib.parse
         user = urllib.parse.quote_plus(self.POSTGRES_USER)
         password = urllib.parse.quote_plus(self.POSTGRES_PASSWORD)
@@ -92,7 +98,8 @@ class Settings(BaseSettings):
 
     # CORS Origins
     CORS_ALLOWED_ORIGINS: str = os.getenv(
-        "CORS_ALLOWED_ORIGINS", "http://localhost:3000,http://localhost:80,http://127.0.0.1:3000,http://127.0.0.1:80"
+        "CORS_ALLOWED_ORIGINS",
+        "http://localhost:3000,http://localhost:80,http://127.0.0.1:3000,http://127.0.0.1:80"
     )
 
     @property

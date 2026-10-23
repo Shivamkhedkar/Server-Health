@@ -32,6 +32,11 @@ def download_agent_script():
     raise HTTPException(status_code=404, detail="Agent script file not found on server")
 
 
+@router.get("/metrics")
+def get_metrics_endpoint_info():
+    return {"status": "active", "endpoint": "/api/agent/metrics", "method": "POST"}
+
+
 @router.post("/metrics")
 def ingest_agent_metrics(
     payload: AgentMetricsIngest,

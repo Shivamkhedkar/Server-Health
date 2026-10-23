@@ -16,3 +16,4 @@ venv/
 .DS_Store
 .vscode/
 .idea/
+PROJECT_EXPLANATION*.txt

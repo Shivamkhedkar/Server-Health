@@ -20,6 +20,11 @@ try:
 except ImportError:
     psutil = None
 
+try:
+    import requests
+except ImportError:
+    requests = None
+
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 logger = logging.getLogger("shp_agent")
 
@@ -63,16 +68,28 @@ class SHPAgent:
         }
 
     def send_payload(self, payload: Dict[str, Any]) -> bool:
+        headers = {
+            "Content-Type": "application/json",
+            "X-API-Key": self.api_key,
+            "User-Agent": "SHPAgent/1.0",
+            "bypass-tunnel-reminder": "true",
+        }
+        if requests:
+            try:
+                resp = requests.post(self.ingest_endpoint, json=payload, headers=headers, timeout=10)
+                if 200 <= resp.status_code < 300:
+                    return True
+                logger.warning("Server returned HTTP status %d", resp.status_code)
+                return False
+            except Exception as exc:
+                logger.warning("Network error posting metrics: %s", exc)
+                return False
+
         data = json.dumps(payload).encode("utf-8")
         req = urllib.request.Request(
             self.ingest_endpoint,
             data=data,
-            headers={
-                "Content-Type": "application/json",
-                "X-API-Key": self.api_key,
-                "User-Agent": "SHPAgent/1.0",
-                "bypass-tunnel-reminder": "true",
-            },
+            headers=headers,
             method="POST",
         )
         try:
