@@ -45,7 +45,7 @@ services:
         fromService:
           type: web
           name: shp-backend
-          property: url
+          property: host
 
 # ---------------------------------------------------------------
 # Managed PostgreSQL Database
