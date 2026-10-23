@@ -3,6 +3,9 @@ import axios from 'axios';
 const getApiBaseUrl = () => {
   let url = (import.meta.env.VITE_API_URL || '').trim().replace(/\/$/, '');
   if (!url) {
+    if (typeof window !== 'undefined' && window.location.hostname.includes('onrender.com')) {
+      return 'https://shp-backend-n494.onrender.com/api';
+    }
     return '/api';
   }
   if (!url.startsWith('http://') && !url.startsWith('https://')) {

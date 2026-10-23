@@ -33,9 +33,9 @@ export default function Login() {
       navigate('/dashboard');
     } catch (err) {
       if (err.code === 'ERR_NETWORK' || !err.response) {
-        setError('Could not reach backend server on port 8000. Check that FastAPI is running.');
+        setError('Network error: Unable to connect to backend at ' + api.defaults.baseURL);
       } else {
-        setError(err.response?.data?.detail || 'Authentication failed. Please check your credentials.');
+        setError(err.response?.data?.detail || err.message || 'Authentication failed. Please check your credentials.');
       }
     } finally {
       setLoading(false);

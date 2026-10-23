@@ -43,10 +43,7 @@ services:
         destination: /index.html
     envVars:
       - key: VITE_API_URL
-        fromService:
-          type: web
-          name: shp-backend
-          property: host
+        value: https://shp-backend-n494.onrender.com
 
 # ---------------------------------------------------------------
 # Managed PostgreSQL Database

@@ -40,9 +40,11 @@ export default function Servers() {
   const rawVite = (import.meta.env.VITE_API_URL || '').trim();
   const defaultBackendUrl = rawVite
     ? (rawVite.startsWith('http://') || rawVite.startsWith('https://') ? rawVite : `https://${rawVite}`).replace(/\/api\/?$/, '').replace(/\/$/, '')
-    : (window.location.port === '3000'
-        ? `${window.location.protocol}//${window.location.hostname}:8000`
-        : window.location.origin);
+    : (window.location.hostname.includes('onrender.com')
+        ? 'https://shp-backend-n494.onrender.com'
+        : (window.location.port === '3000'
+            ? `${window.location.protocol}//${window.location.hostname}:8000`
+            : window.location.origin));
   const [serverUrlOverride, setServerUrlOverride] = useState(defaultBackendUrl);
 
   const navigate = useNavigate();
