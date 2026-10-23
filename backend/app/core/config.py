@@ -14,7 +14,7 @@ class Settings(BaseSettings):
     PROJECT_NAME: str = "DevOps Monitor Pro"
     API_V1_STR: str = "/api"
     ENVIRONMENT: str = os.getenv("ENVIRONMENT", os.getenv("ENV", "development"))
-    SECRET_KEY: str = os.getenv("SECRET_KEY", "")
+    SECRET_KEY: str = os.getenv("SECRET_KEY", os.getenv("JWT_SECRET", ""))
     ALGORITHM: str = "HS256"
     # Short-lived access token + longer-lived refresh token, instead of a
     # single 24h-lived access token. A stolen/leaked access token is now
