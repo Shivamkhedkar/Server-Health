@@ -47,9 +47,16 @@ export default function Dashboard() {
   // Load registered servers list for dropdown selector
   useEffect(() => {
     api.get('/servers')
-      .then(res => setServers(res.data || []))
+      .then(res => {
+        const list = res.data || [];
+        setServers(list);
+        if (!routeServerId && list.length > 0) {
+          const preferred = list.find(s => s.status === 'online' || s.status === 'healthy') || list[0];
+          setSelectedServerId(String(preferred.id));
+        }
+      })
       .catch(() => setServers([]));
-  }, []);
+  }, [routeServerId]);
 
   const applySnapshot = useCallback((data, source) => {
     setOverview(data);
