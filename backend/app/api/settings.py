@@ -12,12 +12,18 @@ router = APIRouter(prefix="/settings", tags=["Settings"], dependencies=[Depends(
 
 
 def _to_response(cfg: dict) -> SettingsResponse:
+    import os
+    bot_token = cfg.get("telegram_bot_token", "").strip() or env_settings.TELEGRAM_BOT_TOKEN
+    chat_id = cfg.get("telegram_chat_id_override", "").strip() or env_settings.TELEGRAM_CHAT_ID
+    has_resend = bool(cfg.get("resend_api_key", "").strip() or os.getenv("RESEND_API_KEY", "").strip())
+    has_smtp = bool(env_settings.SMTP_HOST and env_settings.SMTP_USER and env_settings.SMTP_PASSWORD)
+
     return SettingsResponse(
         **cfg,
-        smtp_configured=bool(env_settings.SMTP_HOST and env_settings.SMTP_USER and env_settings.SMTP_PASSWORD),
-        telegram_configured=bool(
-            env_settings.TELEGRAM_BOT_TOKEN and (env_settings.TELEGRAM_CHAT_ID or cfg.get("telegram_chat_id_override"))
-        ),
+        telegram_bot_token=bot_token,
+        resend_api_key=cfg.get("resend_api_key", ""),
+        smtp_configured=bool(has_smtp or has_resend),
+        telegram_configured=bool(bot_token and chat_id),
     )
 
 

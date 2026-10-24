@@ -13,6 +13,7 @@ logger = logging.getLogger("devops_monitor.notifications")
 
 
 def send_email_alert(db: Session, subject: str, message: str) -> tuple[bool, str]:
+    import os
     cfg = settings_service.get_all_settings(db)
     if cfg.get("email_alerts_enabled", "false").lower() != "true":
         return False, "Email alerts are disabled."
@@ -21,8 +22,31 @@ def send_email_alert(db: Session, subject: str, message: str) -> tuple[bool, str
     if not recipient:
         return False, "No alert recipient email configured."
 
+    # 1. Cloud HTTP Email Gateway via Resend (HTTPS Port 443 - 100% unblocked on Render)
+    resend_key = cfg.get("resend_api_key", "").strip() or os.getenv("RESEND_API_KEY", "").strip()
+    if resend_key:
+        try:
+            url = "https://api.resend.com/emails"
+            headers = {"Authorization": f"Bearer {resend_key}", "Content-Type": "application/json"}
+            payload = {
+                "from": "Server Health Alert <onboarding@resend.dev>",
+                "to": [recipient],
+                "subject": f"[Server Health Monitor] {subject}",
+                "text": message,
+            }
+            resp = httpx.post(url, json=payload, headers=headers, timeout=10)
+            if 200 <= resp.status_code < 300:
+                logger.info("Email alert sent via Resend to %s: %s", recipient, subject)
+                return True, f"Email sent to {recipient} via Resend Cloud API."
+            logger.error("Resend API error: %s", resp.text)
+            return False, f"Resend API error ({resp.status_code}): {resp.text}"
+        except Exception as exc:
+            logger.error("Failed to send Resend email: %s", exc)
+            return False, f"Resend request error: {exc}"
+
+    # 2. Standard SMTP Protocol (often blocked on cloud free tiers on ports 587/465)
     if not all([settings.SMTP_HOST, settings.SMTP_USER, settings.SMTP_PASSWORD]):
-        return False, "SMTP is not configured on the server (check SMTP_* env vars)."
+        return False, "SMTP is not configured on the server (check SMTP_* env vars or add Resend API Key)."
 
     try:
         msg = MIMEMultipart()
@@ -39,8 +63,14 @@ def send_email_alert(db: Session, subject: str, message: str) -> tuple[bool, str
         logger.info("Email alert sent to %s: %s", recipient, subject)
         return True, f"Email sent to {recipient}."
     except Exception as exc:
-        logger.error("Failed to send email alert: %s", exc)
-        return False, f"Failed to send email alert: {exc}"
+        err_str = str(exc)
+        logger.error("Failed to send email alert: %s", err_str)
+        if "Network is unreachable" in err_str or "101" in err_str:
+            return False, (
+                "Render Free Tier blocks outbound SMTP port 587/465 to prevent spam. "
+                "Use Telegram Alerts (100% free over HTTPS) or add a free Resend API key."
+            )
+        return False, f"Failed to send email alert: {err_str}"
 
 
 def send_telegram_alert(db: Session, message: str) -> tuple[bool, str]:
@@ -48,11 +78,11 @@ def send_telegram_alert(db: Session, message: str) -> tuple[bool, str]:
     if cfg.get("telegram_alerts_enabled", "false").lower() != "true":
         return False, "Telegram alerts are disabled."
 
-    bot_token = settings.TELEGRAM_BOT_TOKEN
+    bot_token = cfg.get("telegram_bot_token", "").strip() or settings.TELEGRAM_BOT_TOKEN
     chat_id = cfg.get("telegram_chat_id_override", "").strip() or settings.TELEGRAM_CHAT_ID
 
     if not bot_token or not chat_id:
-        return False, "Telegram bot token or chat ID is not configured."
+        return False, "Telegram Bot Token or Chat ID is not configured. Add them in Settings below."
 
     try:
         url = f"https://api.telegram.org/bot{bot_token}/sendMessage"
@@ -63,9 +93,9 @@ def send_telegram_alert(db: Session, message: str) -> tuple[bool, str]:
         resp = httpx.post(url, json=payload, timeout=10)
         if resp.status_code == 200:
             logger.info("Telegram alert sent.")
-            return True, "Telegram message sent."
+            return True, "Telegram alert sent successfully to chat!"
         logger.error("Telegram API error: %s", resp.text)
-        return False, f"Telegram API error: {resp.text}"
+        return False, f"Telegram API error ({resp.status_code}): {resp.text}"
     except Exception as exc:
         logger.error("Failed to send Telegram alert: %s", exc)
         return False, f"Failed to send Telegram alert: {exc}"

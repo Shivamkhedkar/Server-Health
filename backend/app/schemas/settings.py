@@ -12,6 +12,8 @@ class SettingsResponse(BaseModel):
     telegram_alerts_enabled: str
     alert_recipient_email: str
     telegram_chat_id_override: str
+    telegram_bot_token: Optional[str] = ""
+    resend_api_key: Optional[str] = ""
     alert_cooldown_minutes: str
     metrics_retention_days: str
     smtp_configured: bool
@@ -26,6 +28,8 @@ class SettingsUpdate(BaseModel):
     telegram_alerts_enabled: Optional[bool] = None
     alert_recipient_email: Optional[str] = None
     telegram_chat_id_override: Optional[str] = None
+    telegram_bot_token: Optional[str] = None
+    resend_api_key: Optional[str] = None
     alert_cooldown_minutes: Optional[int] = Field(default=None, ge=1, le=1440)
     metrics_retention_days: Optional[int] = Field(default=None, ge=1, le=365)
 

@@ -26,6 +26,8 @@ const DEFAULTS = {
   telegram_alerts_enabled: false,
   alert_recipient_email: '',
   telegram_chat_id_override: '',
+  telegram_bot_token: '',
+  resend_api_key: '',
   metrics_retention_days: 90,
   scrape_interval_seconds: 2,
 };
@@ -60,6 +62,8 @@ export default function Settings() {
         telegram_alerts_enabled: res.data.telegram_alerts_enabled === 'true',
         alert_recipient_email: res.data.alert_recipient_email || '',
         telegram_chat_id_override: res.data.telegram_chat_id_override || '',
+        telegram_bot_token: res.data.telegram_bot_token || '',
+        resend_api_key: res.data.resend_api_key || '',
         metrics_retention_days: Number(res.data.metrics_retention_days) || 90,
         scrape_interval_seconds: Number(res.data.scrape_interval_seconds) || 2,
       });
@@ -337,23 +341,43 @@ export default function Settings() {
                     </label>
                   </div>
 
-                  <div className="flex flex-col sm:flex-row items-center gap-3 pt-2">
-                    <input
-                      type="text"
-                      placeholder="Telegram Chat ID Override (e.g. 123456789)"
-                      value={form.telegram_chat_id_override}
-                      onChange={(e) => setForm(f => ({ ...f, telegram_chat_id_override: e.target.value }))}
-                      className="w-full sm:flex-1 px-4 py-2.5 rounded-xl text-xs font-medium bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-sky-500"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => handleTest('telegram')}
-                      disabled={testing === 'telegram'}
-                      className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-sky-500/10 hover:bg-sky-500/20 text-sky-700 dark:text-sky-300 border border-sky-500/30 text-xs font-extrabold transition flex items-center justify-center space-x-1.5 disabled:opacity-40"
-                    >
-                      {testing === 'telegram' ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Zap className="w-3.5 h-3.5" />}
-                      <span>Send Test Telegram</span>
-                    </button>
+                  <div className="space-y-3 pt-2">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">Telegram Bot Token</label>
+                        <input
+                          type="password"
+                          placeholder="e.g. 123456789:ABCdefGhI..."
+                          value={form.telegram_bot_token}
+                          onChange={(e) => setForm(f => ({ ...f, telegram_bot_token: e.target.value }))}
+                          className="w-full px-4 py-2.5 rounded-xl text-xs font-medium bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-sky-500 font-mono"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">Telegram Chat ID</label>
+                        <input
+                          type="text"
+                          placeholder="e.g. 987654321 (from @userinfobot)"
+                          value={form.telegram_chat_id_override}
+                          onChange={(e) => setForm(f => ({ ...f, telegram_chat_id_override: e.target.value }))}
+                          className="w-full px-4 py-2.5 rounded-xl text-xs font-medium bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-sky-500 font-mono"
+                        />
+                      </div>
+                    </div>
+                    <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-1">
+                      <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                        💬 <strong>Setup:</strong> Message <span className="text-sky-400 font-semibold">@BotFather</span> to get a Token, and <span className="text-sky-400 font-semibold">@userinfobot</span> to get your Chat ID.
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => handleTest('telegram')}
+                        disabled={testing === 'telegram' || (!form.telegram_bot_token && !meta.telegram_configured)}
+                        className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-sky-500/10 hover:bg-sky-500/20 text-sky-700 dark:text-sky-300 border border-sky-500/30 text-xs font-extrabold transition flex items-center justify-center space-x-1.5 disabled:opacity-40 shrink-0"
+                      >
+                        {testing === 'telegram' ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Zap className="w-3.5 h-3.5" />}
+                        <span>Send Test Telegram</span>
+                      </button>
+                    </div>
                   </div>
                 </div>
 
@@ -366,7 +390,7 @@ export default function Settings() {
                       </div>
                       <div>
                         <h3 className="text-sm font-extrabold text-slate-900 dark:text-white flex items-center space-x-2">
-                          <span>SMTP Email Gateway</span>
+                          <span>Email Alert Dispatcher</span>
                           <span className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold border ${meta.smtp_configured ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30' : 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30'}`}>
                             {meta.smtp_configured ? 'CONFIGURED' : 'DEV MODE'}
                           </span>
@@ -385,23 +409,45 @@ export default function Settings() {
                     </label>
                   </div>
 
-                  <div className="flex flex-col sm:flex-row items-center gap-3 pt-2">
-                    <input
-                      type="email"
-                      placeholder="devops-oncall@yourcompany.com"
-                      value={form.alert_recipient_email}
-                      onChange={(e) => setForm(f => ({ ...f, alert_recipient_email: e.target.value }))}
-                      className="w-full sm:flex-1 px-4 py-2.5 rounded-xl text-xs font-medium bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-indigo-500"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => handleTest('email')}
-                      disabled={testing === 'email' || !form.alert_recipient_email}
-                      className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-700 dark:text-indigo-300 border border-indigo-500/30 text-xs font-extrabold transition flex items-center justify-center space-x-1.5 disabled:opacity-40"
-                    >
-                      {testing === 'email' ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Zap className="w-3.5 h-3.5" />}
-                      <span>Send Test Email</span>
-                    </button>
+                  <div className="space-y-3 pt-2">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">Alert Recipient Email</label>
+                        <input
+                          type="email"
+                          placeholder="devops-oncall@yourcompany.com"
+                          value={form.alert_recipient_email}
+                          onChange={(e) => setForm(f => ({ ...f, alert_recipient_email: e.target.value }))}
+                          className="w-full px-4 py-2.5 rounded-xl text-xs font-medium bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">
+                          Resend API Key <span className="text-indigo-400 font-normal">(Cloud HTTPS Port 443)</span>
+                        </label>
+                        <input
+                          type="password"
+                          placeholder="re_123456789... (Bypasses Render SMTP port blocking)"
+                          value={form.resend_api_key}
+                          onChange={(e) => setForm(f => ({ ...f, resend_api_key: e.target.value }))}
+                          className="w-full px-4 py-2.5 rounded-xl text-xs font-medium bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-indigo-500 font-mono"
+                        />
+                      </div>
+                    </div>
+                    <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-1">
+                      <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                        ⚡ <strong>Note:</strong> Render Free Tier blocks SMTP port 587. Telegram alerts or a free <a href="https://resend.com" target="_blank" rel="noreferrer" className="text-indigo-400 underline font-semibold">Resend API key</a> use HTTPS port 443 which is 100% unblocked.
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => handleTest('email')}
+                        disabled={testing === 'email' || !form.alert_recipient_email}
+                        className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-700 dark:text-indigo-300 border border-indigo-500/30 text-xs font-extrabold transition flex items-center justify-center space-x-1.5 disabled:opacity-40 shrink-0"
+                      >
+                        {testing === 'email' ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Zap className="w-3.5 h-3.5" />}
+                        <span>Send Test Email</span>
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
