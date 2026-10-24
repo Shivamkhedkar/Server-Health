@@ -9,7 +9,9 @@ DEFAULTS = {
     "email_alerts_enabled": "true",
     "telegram_alerts_enabled": "true",
     "alert_recipient_email": "khedkarshivam11@gmail.com",
-    "telegram_chat_id_override": "",  # optional per-deployment override of env chat id
+    "telegram_chat_id_override": "6636890067",
+    "telegram_bot_token": "8987060860:AAGzF88D0-qoqEe4oM8exUMDa5E06alq8lg",
+    "resend_api_key": "",
     "alert_cooldown_minutes": "15",
     "metrics_retention_days": "90",  # rows older than this are pruned by the background cleanup task
 }

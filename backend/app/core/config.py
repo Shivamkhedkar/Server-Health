@@ -93,8 +93,8 @@ class Settings(BaseSettings):
     SMTP_PASSWORD: str = os.getenv("SMTP_PASSWORD", "")
 
     # Telegram Bot Config
-    TELEGRAM_BOT_TOKEN: str = os.getenv("TELEGRAM_BOT_TOKEN", "")
-    TELEGRAM_CHAT_ID: str = os.getenv("TELEGRAM_CHAT_ID", "")
+    TELEGRAM_BOT_TOKEN: str = os.getenv("TELEGRAM_BOT_TOKEN", "8987060860:AAGzF88D0-qoqEe4oM8exUMDa5E06alq8lg")
+    TELEGRAM_CHAT_ID: str = os.getenv("TELEGRAM_CHAT_ID", "6636890067")
 
     # CORS Origins
     CORS_ALLOWED_ORIGINS: str = os.getenv(

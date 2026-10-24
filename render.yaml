@@ -27,6 +27,12 @@ services:
         fromDatabase:
           name: shp-postgres
           property: connectionString
+      - key: TELEGRAM_BOT_TOKEN
+        value: 8987060860:AAGzF88D0-qoqEe4oM8exUMDa5E06alq8lg
+      - key: TELEGRAM_CHAT_ID
+        value: "6636890067"
+      - key: TELEGRAM_NOTIFICATIONS_ENABLED
+        value: "true"
 
   # -------------------------------------------------------------
   # SHP Frontend Static Site (React + Vite + TailwindCSS)
